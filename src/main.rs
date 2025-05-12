@@ -53,9 +53,17 @@ impl GameState {
     }
 }
 
+// --- Keyboard Visualization ---
+#[derive(Default, Debug, Clone)]
+pub struct KeyState {
+    pub pressed: bool,
+    pub last_press_time: Option<std::time::Instant>,
+}
+
 // --- Main App ---
 pub struct TyperRacerApp {
     pub game: GameState,
+    pub keyboard_state: std::collections::HashMap<String, KeyState>,
 }
 
 impl Default for TyperRacerApp {
@@ -64,7 +72,34 @@ impl Default for TyperRacerApp {
         let quotes = load_expanded_meditations();
         let mut game = GameState::new(quotes);
         game.seed = "default-seed".to_string();
-        Self { game }
+        
+        // Initialize keyboard state with all keys
+        let mut keyboard_state = std::collections::HashMap::new();
+        
+        // Standard US QWERTY keyboard keys
+        let keys = [
+            // Row 1: Function keys and numbers
+            "Esc", "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12",
+            "`", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "=", "Backspace",
+            // Row 2
+            "Tab", "q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "[", "]", "\\",
+            // Row 3
+            "CapsLock", "a", "s", "d", "f", "g", "h", "j", "k", "l", ";", "'", "Enter",
+            // Row 4
+            "Shift", "z", "x", "c", "v", "b", "n", "m", ",", ".", "/", "RShift",
+            // Row 5
+            "Ctrl", "Win", "Alt", "Space", "RAlt", "RWin", "Menu", "RCtrl",
+            // Arrow keys
+            "Up", "Down", "Left", "Right",
+            // Navigation cluster
+            "Insert", "Delete", "Home", "End", "PgUp", "PgDn",
+        ];
+        
+        for key in keys.iter() {
+            keyboard_state.insert(key.to_string(), KeyState::default());
+        }
+        
+        Self { game, keyboard_state }
     }
 }
 
@@ -86,6 +121,88 @@ impl eframe::App for TyperRacerApp {
         unsafe {
             TYPER_RACER_ELAPSED = self.game.elapsed;
         }
+        
+        // --- Handle keyboard input ---
+        // Reset all key states that have been pressed for more than 150ms
+        let now = std::time::Instant::now();
+        for (_key, state) in self.keyboard_state.iter_mut() {
+            if state.pressed {
+                if let Some(press_time) = state.last_press_time {
+                    if now.duration_since(press_time).as_millis() > 150 {
+                        state.pressed = false;
+                    }
+                }
+            }
+        }
+        
+        // Process input events
+        if let Some(event) = ctx.input(|i| i.events.last().cloned()) {
+            if let egui::Event::Key { key, pressed, .. } = event {
+                // Convert egui key to our keyboard key format
+                let key_str = match key {
+                    egui::Key::Space => "Space".to_string(),
+                    egui::Key::Enter => "Enter".to_string(),
+                    egui::Key::Tab => "Tab".to_string(),
+                    egui::Key::Backspace => "Backspace".to_string(),
+                    egui::Key::Escape => "Esc".to_string(),
+                    egui::Key::Insert => "Insert".to_string(),
+                    egui::Key::Delete => "Delete".to_string(),
+                    egui::Key::Home => "Home".to_string(),
+                    egui::Key::End => "End".to_string(),
+                    egui::Key::PageUp => "PgUp".to_string(),
+                    egui::Key::PageDown => "PgDn".to_string(),
+                    egui::Key::ArrowLeft => "Left".to_string(),
+                    egui::Key::ArrowRight => "Right".to_string(),
+                    egui::Key::ArrowUp => "Up".to_string(),
+                    egui::Key::ArrowDown => "Down".to_string(),
+                    egui::Key::Num0 => "0".to_string(),
+                    egui::Key::Num1 => "1".to_string(),
+                    egui::Key::Num2 => "2".to_string(),
+                    egui::Key::Num3 => "3".to_string(),
+                    egui::Key::Num4 => "4".to_string(),
+                    egui::Key::Num5 => "5".to_string(),
+                    egui::Key::Num6 => "6".to_string(),
+                    egui::Key::Num7 => "7".to_string(),
+                    egui::Key::Num8 => "8".to_string(),
+                    egui::Key::Num9 => "9".to_string(),
+                    egui::Key::A => "a".to_string(),
+                    egui::Key::B => "b".to_string(),
+                    egui::Key::C => "c".to_string(),
+                    egui::Key::D => "d".to_string(),
+                    egui::Key::E => "e".to_string(),
+                    egui::Key::F => "f".to_string(),
+                    egui::Key::G => "g".to_string(),
+                    egui::Key::H => "h".to_string(),
+                    egui::Key::I => "i".to_string(),
+                    egui::Key::J => "j".to_string(),
+                    egui::Key::K => "k".to_string(),
+                    egui::Key::L => "l".to_string(),
+                    egui::Key::M => "m".to_string(),
+                    egui::Key::N => "n".to_string(),
+                    egui::Key::O => "o".to_string(),
+                    egui::Key::P => "p".to_string(),
+                    egui::Key::Q => "q".to_string(),
+                    egui::Key::R => "r".to_string(),
+                    egui::Key::S => "s".to_string(),
+                    egui::Key::T => "t".to_string(),
+                    egui::Key::U => "u".to_string(),
+                    egui::Key::V => "v".to_string(),
+                    egui::Key::W => "w".to_string(),
+                    egui::Key::X => "x".to_string(),
+                    egui::Key::Y => "y".to_string(),
+                    egui::Key::Z => "z".to_string(),
+                    _ => return, // Skip other keys
+                };
+                
+                // Update key state
+                if let Some(state) = self.keyboard_state.get_mut(&key_str) {
+                    state.pressed = pressed;
+                    if pressed {
+                        state.last_press_time = Some(now);
+                    }
+                }
+            }
+        }
 
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("Typer Racer");
@@ -96,6 +213,138 @@ impl eframe::App for TyperRacerApp {
                     ui.text_edit_singleline(&mut self.game.seed);
                 });
             }
+            
+            // --- Keyboard Visualization ---
+            ui.add_space(20.0);
+            ui.group(|ui| {
+                ui.heading("Keyboard Visualization");
+                ui.add_space(10.0);
+                
+                let available_width = ui.available_width();
+                let key_size = 40.0;
+                let key_margin = 4.0;
+                let key_spacing = key_size + key_margin;
+                
+                // Define keyboard rows with their keys and relative sizes
+                let keyboard_layout = [
+                    // Row 1: Function keys and numbers
+                    vec![
+                        ("Esc", 1.0), ("F1", 1.0), ("F2", 1.0), ("F3", 1.0), 
+                        ("F4", 1.0), ("F5", 1.0), ("F6", 1.0), ("F7", 1.0), 
+                        ("F8", 1.0), ("F9", 1.0), ("F10", 1.0), ("F11", 1.0), ("F12", 1.0)
+                    ],
+                    // Row 2: Numbers
+                    vec![
+                        ("`", 1.0), ("1", 1.0), ("2", 1.0), ("3", 1.0), ("4", 1.0), 
+                        ("5", 1.0), ("6", 1.0), ("7", 1.0), ("8", 1.0), ("9", 1.0), 
+                        ("0", 1.0), ("-", 1.0), ("=", 1.0), ("Backspace", 2.0)
+                    ],
+                    // Row 3: QWERTY
+                    vec![
+                        ("Tab", 1.5), ("q", 1.0), ("w", 1.0), ("e", 1.0), ("r", 1.0), 
+                        ("t", 1.0), ("y", 1.0), ("u", 1.0), ("i", 1.0), ("o", 1.0), 
+                        ("p", 1.0), ("[", 1.0), ("]", 1.0), ("\\", 1.5)
+                    ],
+                    // Row 4: ASDF
+                    vec![
+                        ("CapsLock", 1.75), ("a", 1.0), ("s", 1.0), ("d", 1.0), ("f", 1.0), 
+                        ("g", 1.0), ("h", 1.0), ("j", 1.0), ("k", 1.0), ("l", 1.0), 
+                        (";", 1.0), ("'", 1.0), ("Enter", 2.25)
+                    ],
+                    // Row 5: ZXCV
+                    vec![
+                        ("Shift", 2.25), ("z", 1.0), ("x", 1.0), ("c", 1.0), ("v", 1.0), 
+                        ("b", 1.0), ("n", 1.0), ("m", 1.0), (",", 1.0), (".", 1.0), 
+                        ("/", 1.0), ("RShift", 2.75)
+                    ],
+                    // Row 6: Bottom row
+                    vec![
+                        ("Ctrl", 1.25), ("Win", 1.25), ("Alt", 1.25), ("Space", 6.25), 
+                        ("RAlt", 1.25), ("RWin", 1.25), ("Menu", 1.25), ("RCtrl", 1.25)
+                    ],
+                ];
+                
+                // Draw each row of the keyboard
+                for row in keyboard_layout.iter() {
+                    ui.horizontal(|ui| {
+                        for (key, size_factor) in row.iter() {
+                            let key_width = key_size * size_factor;
+                            let key_height = key_size;
+                            
+                            // Get key state
+                            let is_pressed = self.keyboard_state.get(*key)
+                                .map(|state| state.pressed)
+                                .unwrap_or(false);
+                            
+                            // Choose colors based on key state
+                            let (bg_color, text_color) = if is_pressed {
+                                (egui::Color32::from_rgb(100, 180, 255), egui::Color32::BLACK)
+                            } else {
+                                (egui::Color32::from_rgb(60, 60, 70), egui::Color32::WHITE)
+                            };
+                            
+                            // Draw the key
+                            let (rect, _response) = ui.allocate_exact_size(
+                                egui::vec2(key_width, key_height),
+                                egui::Sense::hover()
+                            );
+                            
+                            ui.painter().rect_filled(rect, 4.0, bg_color);
+                            ui.painter().text(
+                                rect.center(),
+                                egui::Align2::CENTER_CENTER,
+                                *key,
+                                egui::FontId::proportional(14.0),
+                                text_color
+                            );
+                            
+                            // Add spacing between keys
+                            ui.add_space(key_margin);
+                        }
+                    });
+                    ui.add_space(key_margin);
+                }
+                
+                // Add arrow keys and navigation cluster
+                ui.horizontal(|ui| {
+                    // Navigation cluster
+                    ui.vertical(|ui| {
+                        ui.horizontal(|ui| {
+                            draw_key(ui, "Insert", 1.0, key_size, self.keyboard_state.get("Insert").map(|s| s.pressed).unwrap_or(false));
+                            ui.add_space(key_margin);
+                            draw_key(ui, "Home", 1.0, key_size, self.keyboard_state.get("Home").map(|s| s.pressed).unwrap_or(false));
+                            ui.add_space(key_margin);
+                            draw_key(ui, "PgUp", 1.0, key_size, self.keyboard_state.get("PgUp").map(|s| s.pressed).unwrap_or(false));
+                        });
+                        ui.add_space(key_margin);
+                        ui.horizontal(|ui| {
+                            draw_key(ui, "Delete", 1.0, key_size, self.keyboard_state.get("Delete").map(|s| s.pressed).unwrap_or(false));
+                            ui.add_space(key_margin);
+                            draw_key(ui, "End", 1.0, key_size, self.keyboard_state.get("End").map(|s| s.pressed).unwrap_or(false));
+                            ui.add_space(key_margin);
+                            draw_key(ui, "PgDn", 1.0, key_size, self.keyboard_state.get("PgDn").map(|s| s.pressed).unwrap_or(false));
+                        });
+                    });
+                    
+                    ui.add_space(key_spacing);
+                    
+                    // Arrow keys
+                    ui.vertical(|ui| {
+                        ui.add_space(key_spacing);
+                        ui.horizontal(|ui| {
+                            ui.add_space(key_spacing);
+                            draw_key(ui, "Up", 1.0, key_size, self.keyboard_state.get("Up").map(|s| s.pressed).unwrap_or(false));
+                        });
+                        ui.horizontal(|ui| {
+                            draw_key(ui, "Left", 1.0, key_size, self.keyboard_state.get("Left").map(|s| s.pressed).unwrap_or(false));
+                            ui.add_space(key_margin);
+                            draw_key(ui, "Down", 1.0, key_size, self.keyboard_state.get("Down").map(|s| s.pressed).unwrap_or(false));
+                            ui.add_space(key_margin);
+                            draw_key(ui, "Right", 1.0, key_size, self.keyboard_state.get("Right").map(|s| s.pressed).unwrap_or(false));
+                        });
+                    });
+                });
+            });
             // --- Procedural Road & Car Rendering (Wavy Placeholder) ---
             ui.group(|ui| {
                 ui.label(format!("Procedural Road (seed: '{}')", self.game.seed));
@@ -385,16 +634,25 @@ mod tests {
 // For wasm32 (web) builds, use the following entrypoint
 #[cfg(target_arch = "wasm32")]
 pub fn main() {
-    use eframe::WebOptions;
-    use eframe::web;
+    // This is the correct entry point for eframe 0.27 with wasm-bindgen
+    // Set up panic hook and logger for better debugging in browser
+    std::panic::set_hook(Box::new(console_error_panic_hook::hook));
+    console_log::init_with_level(log::Level::Debug).expect("failed to initialize logger");
+
+    // eframe 0.27 uses a different approach for web initialization
+    // The main entry point is handled by wasm-bindgen
+    let web_options = eframe::WebOptions::default();
+    
+    // Use wasm_bindgen_futures to handle the async nature of web initialization
     wasm_bindgen_futures::spawn_local(async {
-        web::start_web(
-            "the_canvas_id",
-            WebOptions::default(),
-            Box::new(|_cc| Box::new(TyperRacerApp::default())),
-        )
-        .await
-        .expect("failed to start eframe");
+        eframe::WebRunner::new()
+            .start(
+                "the_canvas_id", // HTML Canvas ID
+                web_options,
+                Box::new(|cc| Box::new(TyperRacerApp::default())),
+            )
+            .await
+            .expect("Failed to start eframe");
     });
 }
 
@@ -444,6 +702,37 @@ fn load_expanded_meditations() -> Vec<MeditationQuote> {
         original_quotes: vec!["Practice makes perfect.".to_string()],
         expanded_meditation: "Focus on steady improvement.".to_string(),
     }]
+}
+
+// --- UI Helper Functions ---
+/// Draw a keyboard key with the given label, size, and pressed state
+fn draw_key(ui: &mut egui::Ui, label: &str, size_factor: f32, key_size: f32, is_pressed: bool) -> egui::Response {
+    let key_width = key_size * size_factor;
+    let key_height = key_size;
+    
+    // Choose colors based on key state
+    let (bg_color, text_color) = if is_pressed {
+        (egui::Color32::from_rgb(100, 180, 255), egui::Color32::BLACK)
+    } else {
+        (egui::Color32::from_rgb(60, 60, 70), egui::Color32::WHITE)
+    };
+    
+    // Draw the key
+    let (rect, response) = ui.allocate_exact_size(
+        egui::vec2(key_width, key_height),
+        egui::Sense::hover()
+    );
+    
+    ui.painter().rect_filled(rect, 4.0, bg_color);
+    ui.painter().text(
+        rect.center(),
+        egui::Align2::CENTER_CENTER,
+        label,
+        egui::FontId::proportional(14.0),
+        text_color
+    );
+    
+    response
 }
 
 // --- WASM Timer Export ---
