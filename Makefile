@@ -3,6 +3,9 @@
 # Default target: build everything and launch web
 all: build test wasm web
 
+# mall: clean, then build, test, wasm, web
+mall: clean build test wasm web
+
 # Build native Rust binary
 build:
 	cargo build
@@ -21,6 +24,14 @@ web:
 
 # Clean build artifacts
 clean:
+	@echo "Checking if port 8080 (trunk serve) is open..."
+	@if lsof -i :8080 | grep LISTEN; then \
+	  echo "Port 8080 is open. Stopping process..."; \
+	  kill -9 $$(lsof -ti:8080); \
+	  echo "Process on port 8080 stopped."; \
+	else \
+	  echo "Port 8080 is not open."; \
+	fi
 	cargo clean
 	wasm-pack clean || true
 

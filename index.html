@@ -21,11 +21,15 @@
             <div style="font-size:1.3em;">Loading Typer Racer…</div>
         </div>
     </div>
-    <canvas id="the_canvas_id" class="egui"></canvas>
+    <div id="score" style="display:none;position:fixed;top:16px;left:50%;transform:translateX(-50%);background:#333;padding:8px 24px;border-radius:8px;font-size:1.2em;box-shadow:0 2px 12px #0007;z-index:500;">Score: <span id="score_value">0</span></div>
+<div id="instructions" style="display:none;position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#333;padding:12px 32px;border-radius:8px;font-size:1.1em;box-shadow:0 2px 12px #0007;z-index:500;">Type the words as fast as you can! Press Enter to start.</div>
+<canvas id="the_canvas_id" class="egui"></canvas>
     <script type="module">
         import init from './pkg/typer_racer.js';
         init().finally(() => {
             document.getElementById('loading').style.display = 'none';
+            document.getElementById('score').style.display = 'block';
+            document.getElementById('instructions').style.display = 'block';
         }).catch(e => console.error(e));
     </script>
     <style>
