@@ -4,8 +4,47 @@
     <meta charset="utf-8">
     <title>Typer Racer</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <!-- Specify the binary target for trunk to build -->
-    <link data-trunk rel="rust" data-bin="typer-racer" />
+    <!-- Specify the binary target for trunk to build with WASM optimization -->
+    <link data-trunk rel="rust" data-bin="typer-racer" data-wasm-opt="z" />
+    <!-- Include the JSON data file -->
+    <link data-trunk rel="copy-file" href="level/expanded-meditations.json" />
+    
+    <script>
+        // This script will handle timer updates after the WASM module is loaded by Trunk
+        // Listen for the Trunk application started event
+        window.addEventListener('TrunkApplicationStarted', (event) => {
+            console.log('Trunk application started, WASM loaded successfully');
+            
+            // Update UI elements
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('score').style.display = 'block';
+            document.getElementById('instructions').style.display = 'block';
+            
+            // Set up timer update using the exported get_elapsed_time function
+            setInterval(() => {
+                try {
+                    // Access the get_elapsed_time function from the WASM bindings
+                    if (window.wasmBindings && typeof window.wasmBindings.get_elapsed_time === 'function') {
+                        let t = window.wasmBindings.get_elapsed_time();
+                        if (typeof t === 'number' && !isNaN(t)) {
+                            document.getElementById('timer_value').textContent = t.toFixed(2);
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Error updating timer:', e);
+                }
+            }, 100);
+        });
+        
+        // Set a timeout to show an error if WASM doesn't load within 10 seconds
+        setTimeout(() => {
+            if (!window.wasmBindings) {
+                console.error('Failed to initialize WASM module: Timeout');
+                document.getElementById('loading').innerHTML = 
+                    `<div style="color: #ff5555">Error loading Typer Racer:<br>WASM module failed to load within timeout period</div>`;
+            }
+        }, 10000);
+    </script>
     <style>
         html, body { height: 100%; margin: 0; padding: 0; background: #181818; color: #f8f8f2; font-family: 'Fira Mono', 'Menlo', 'Consolas', monospace; }
         #the_canvas_id { display: block; margin: 0 auto; background: #222; border-radius: 8px; box-shadow: 0 0 24px #0008; }
@@ -27,26 +66,6 @@
 <div id="instructions" style="display:none;position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#333;padding:12px 32px;border-radius:8px;font-size:1.1em;box-shadow:0 2px 12px #0007;z-index:500;">Type the words as fast as you can! Press Enter to start.</div>
 <div id="timer" style="display:block;position:fixed;top:60px;left:50%;transform:translateX(-50%);background:#252525;padding:8px 28px;border-radius:8px;font-size:1.3em;box-shadow:0 2px 12px #0007;z-index:600;min-width:120px;text-align:center;">Time: <span id="timer_value">0.00</span>s</div>
 <canvas id="the_canvas_id" class="egui"></canvas>
-    <script type="module">
-        // Import from the root path where Trunk places the generated files
-        import init, { get_elapsed_time } from './typer_racer.js';
-        let wasmReady = false;
-        function updateTimer() {
-            if (wasmReady && typeof get_elapsed_time === 'function') {
-                let t = get_elapsed_time();
-                if (typeof t === 'number' && !isNaN(t)) {
-                    document.getElementById('timer_value').textContent = t.toFixed(2);
-                }
-            }
-        }
-        init().finally(() => {
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('score').style.display = 'block';
-            document.getElementById('instructions').style.display = 'block';
-            wasmReady = true;
-            setInterval(updateTimer, 100);
-        }).catch(e => console.error(e));
-    </script>
     <style>
         @keyframes spin { 100% { transform: rotate(360deg); } }
     </style>

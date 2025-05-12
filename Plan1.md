@@ -78,3 +78,28 @@ If you need further tweaks to the HTML, want a loading spinner, favicon, or want
 
 we currently have a build error, but we never finished the UI. or the game. First we wanted to be able to build the interface, but currrently we seems to have a working ui in rust, but with a UI with a simple text, which we want to be the same as the one in the desktop application, and unified codebase where we can use both the system binary and have a warm target deployed with help of hosting via trunk serve via localhost.  Read all the markdown *.md files as requiremnets for design. We want to start bur right now we are stuck at calling start because a large refactor needs to occur. 
 
+I've fixed the clipboard functionality issue in your Typer Racer game by properly configuring the build process to include the required RUSTFLAGS. Here's what I did:
+
+Created a Trunk.toml configuration file with the necessary RUSTFLAGS setting:
+toml
+CopyInsert
+[
+build
+]
+# Set RUSTFLAGS to enable clipboard functionality
+rustflags = ["--cfg=web_sys_unstable_apis"]
+
+[
+serve
+]
+# Configure the development server
+port = 8080
+open = true
+Updated both Cargo.toml files to include the required web-sys features for clipboard functionality:
+Added "Clipboard", "ClipboardEvent", and "Navigator" to the web-sys features list
+Successfully built the project with the new configuration using trunk build
+The application is now running with clipboard functionality enabled. The warning message "eframe compiled without RUSTFLAGS='--cfg=web_sys_unstable_apis'. Copying text won't work." should no longer appear in the console.
+
+You can access the application at http://localhost:8080. The server is currently running in the background.
+
+This approach is more reliable than modifying the Makefile because it ensures that the RUSTFLAGS are properly set whenever you build with Trunk, which is the recommended way to build and serve WebAssembly applications.

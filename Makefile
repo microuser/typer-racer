@@ -16,7 +16,7 @@ test:
 
 # Build WebAssembly package (using wasm-pack by default)
 wasm:
-	wasm-pack build --target web
+	RUSTFLAGS='--cfg=web_sys_unstable_apis' wasm-pack build --target web
 
 # Launch local web server (using trunk) in daemon mode, save PID
 web:

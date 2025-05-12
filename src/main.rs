@@ -146,7 +146,6 @@ impl Default for TyperRacerApp {
 }
 
 // --- WASM Timer Global ---
-#[cfg(target_arch = "wasm32")]
 #[no_mangle]
 pub static mut TYPER_RACER_ELAPSED: f32 = 0.0;
 

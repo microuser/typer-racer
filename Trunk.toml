@@ -1,0 +1,22 @@
+[build]
+# Build for release by default
+release = true
+
+# Set RUSTFLAGS to enable clipboard functionality
+rustflags = ["--cfg=web_sys_unstable_apis"]
+
+[watch]
+# Watch these directories for changes
+watch = ["src", "Cargo.toml", "index.html", "level"]
+
+[serve]
+# The address to serve on
+address = "127.0.0.1"
+port = 8080
+open = true
+
+# Hook for post-build actions
+[[hooks]]
+stage = "post_build"
+command = "echo"
+command_arguments = ["Typer Racer build completed successfully!"]
