@@ -37,7 +37,7 @@ pub struct GameState {
     pub input_buffer: String,
     pub status: GameStatus,
     pub errors: usize,
-    pub start_time: Option<std::time::Instant>,
+    pub start_time: Option<TimeInstant>,
     pub elapsed: f32,
     pub replay: Vec<ReplayEvent>,
     pub ghost_mode: bool,
@@ -53,11 +53,52 @@ impl GameState {
     }
 }
 
+// --- Time Handling for Cross-Platform ---
+#[cfg(not(target_arch = "wasm32"))]
+pub type TimeInstant = std::time::Instant;
+
+#[cfg(target_arch = "wasm32")]
+pub struct TimeInstant(f64); // Timestamp in milliseconds
+
+#[cfg(target_arch = "wasm32")]
+impl TimeInstant {
+    pub fn now() -> Self {
+        let window = web_sys::window().expect("no global window exists");
+        let performance = window.performance().expect("performance object not available");
+        Self(performance.now())
+    }
+    
+    pub fn elapsed(&self) -> TimeDuration {
+        let now = Self::now();
+        TimeDuration((now.0 - self.0) / 1000.0) // Convert ms to seconds
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub struct TimeDuration(f32); // Duration in seconds
+
+#[cfg(not(target_arch = "wasm32"))]
+impl TimeDuration {
+    pub fn as_secs_f32(&self) -> f32 {
+        self.0
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+pub struct TimeDuration(f32); // Duration in seconds
+
+#[cfg(target_arch = "wasm32")]
+impl TimeDuration {
+    pub fn as_secs_f32(&self) -> f32 {
+        self.0
+    }
+}
+
 // --- Keyboard Visualization ---
 #[derive(Default, Debug, Clone)]
 pub struct KeyState {
     pub pressed: bool,
-    pub last_press_time: Option<std::time::Instant>,
+    pub last_press_time: Option<TimeInstant>,
 }
 
 // --- Main App ---
@@ -112,7 +153,7 @@ impl eframe::App for TyperRacerApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         // --- Timing ---
         if self.game.status == GameStatus::Running {
-            if let Some(start) = self.game.start_time {
+            if let Some(start) = &self.game.start_time {
                 self.game.elapsed = start.elapsed().as_secs_f32();
             }
         }
@@ -124,12 +165,23 @@ impl eframe::App for TyperRacerApp {
         
         // --- Handle keyboard input ---
         // Reset all key states that have been pressed for more than 150ms
-        let now = std::time::Instant::now();
+        let now = TimeInstant::now();
         for (_key, state) in self.keyboard_state.iter_mut() {
             if state.pressed {
-                if let Some(press_time) = state.last_press_time {
-                    if now.duration_since(press_time).as_millis() > 150 {
-                        state.pressed = false;
+                if let Some(press_time) = &state.last_press_time {
+                    #[cfg(not(target_arch = "wasm32"))]
+                    {
+                        if now.duration_since(*press_time).as_millis() > 150 {
+                            state.pressed = false;
+                        }
+                    }
+                    
+                    #[cfg(target_arch = "wasm32")]
+                    {
+                        let duration = press_time.elapsed();
+                        if duration.as_secs_f32() * 1000.0 > 150.0 {
+                            state.pressed = false;
+                        }
                     }
                 }
             }
@@ -525,7 +577,7 @@ impl eframe::App for TyperRacerApp {
                     expanded_meditation: meditation.clone(),
                 }];
                 self.game.status = GameStatus::Running;
-                self.game.start_time = Some(std::time::Instant::now());
+                self.game.start_time = Some(TimeInstant::now());
                 self.game.input_buffer.clear();
                 self.game.errors = 0;
                 self.game.current_quote = 0;
