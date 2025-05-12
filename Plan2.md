@@ -52,3 +52,191 @@ We've successfully fixed the WebAssembly loading issues and clipboard functional
 3. Design and implement the start and results screens
 4. Add visual polish and animations
 5. Implement additional features based on priority
+
+
+Typer Racer UI Specification
+Overview
+Typer Racer is a head-to-head typing race game where players compete against a ghost replay or AI by typing quotes that appear as words on road signs. This document outlines the requirements for the user interface, which follows a specific layout structure with multiple sections.
+Interface Layout
+The UI is organized into 5 distinct sections:
++---------------------------------------------------+
+|                     TOP                           |
++---------------------------------------------------+
+|                     |                             |
+|        LEFT         |           RIGHT             |
+|                     |                             |
++---------------------------------------------------+
+|                  MIDDLE                           |
++---------------------------------------------------+
+|                 KEYBOARD                          |
++---------------------------------------------------+
+|                  FOOTER                           |
++---------------------------------------------------+
+Section Descriptions
+1. TOP Section
+
+Content: Scores, statistics, and game status information
+Features:
+
+Player 1 and Player 2 WPM (Words Per Minute) counters
+Current level seed display
+Timer/countdown
+Game status indicators
+Race progress visualization (percentage complete)
+
+
+
+2. LEFT Section
+
+Content: Player 1's game view
+Features:
+
+Scrolling road with obstacles
+Car visualization representing player progress
+Visual feedback on typing performance
+Error indicators
+Speed boost indicators
+
+
+
+3. RIGHT Section
+
+Content: Player 2's game view (ghost replay or AI)
+Features:
+
+Identical layout to LEFT section
+Ghost car visualization
+Replay of previous best run or AI opponent
+Same obstacle pattern as LEFT (generated from the same seed)
+
+
+
+4. MIDDLE Section
+
+Content: Text input and display area
+Features:
+
+Clear display of the current quote/text to be typed
+Word highlighting for current position
+Color-coding for correct/incorrect typing
+User input area with cursor
+Real-time feedback on typing accuracy
+
+
+
+5. KEYBOARD Section
+
+Content: Visual keyboard map
+Features:
+
+On-screen keyboard visualization
+Highlighting of keys as they are pressed
+Color-coding for correct/incorrect key presses
+Key usage statistics
+
+
+
+6. FOOTER Section
+
+Content: Additional stats and menu commands
+Features:
+
+Detailed performance metrics
+Game control buttons (restart, change level, settings)
+Mode selection
+Options for saving/loading ghost replays
+Settings toggles (sound, difficulty, etc.)
+
+
+
+Technical Requirements
+Procedural Level Generation
+
+Seed-Based Generation: Levels will be procedurally generated based on a seed derived from the quote
+Algorithm:
+
+Convert quote text to a numerical seed
+Use seed to deterministically generate obstacle patterns
+Ensure identical obstacle patterns for both player and ghost
+Variation in obstacle types and positions based on the seed
+
+
+
+Visual Design
+
+Color Scheme: Dark mode by default (dark background with high-contrast text)
+Typography: Monospaced font for text input and display
+Animations: Smooth transitions and feedback animations
+Responsiveness: Adaptive layout for different screen sizes
+
+Interaction Design
+
+Typing Input:
+
+Real-time processing of keystrokes
+Immediate visual feedback
+Error handling with recovery options
+
+
+Game Controls:
+
+Keyboard shortcuts for common actions
+Intuitive menu navigation
+
+
+
+Game Flow
+
+Start screen with quote selection or random generation
+Countdown to race start
+Simultaneous race progression for player and ghost
+Real-time stats updating during gameplay
+Race completion with results screen
+Option to save replay, retry, or select new quote
+
+Implementation Notes
+
+Use wasm ui elements for UI implementation with  for styling
+Implement keyboard tracking with event listeners
+Create a self-contained seed generation function for reproducible levels
+Ensure separate state management for player and ghost entities
+Use animation frames for smooth scrolling effects
+Implement accessibility features for keyboard navigation
+
+
+Future Enhancements
+
+Sound effects for typing, obstacles, and achievements
+Additional themes and visual customization
+Online multiplayer capabilities
+Advanced statistics and learning insights
+Custom quote import functionality
+Now I'll update the update method in the TyperRacerApp implementation to create the 5-section layout according to the Plan2.md specifications:
+
+
+I've successfully implemented the UI design according to the specifications in Plan2.md. The Typer Racer game now has a structured 5-section layout with all the key components:
+
+TOP Section: Shows player WPM, level seed, timer, and race progress bar
+LEFT/RIGHT Sections: Displays player and ghost car visualizations with road and progress tracking
+MIDDLE Section: Shows the text to type with highlighting for the current position
+KEYBOARD Section: Provides a visual keyboard with key highlighting
+FOOTER Section: Contains stats, controls, and display options
+The UI now follows a dark mode aesthetic by default and includes:
+
+Progress visualization with a progress bar and car movement
+Text highlighting for typed/current/upcoming text
+Visual keyboard with key highlighting
+Game controls and settings
+Key features implemented:
+
+Real-time WPM calculation
+Progress tracking
+Visual feedback for typing
+Customization options (show/hide ghost, keyboard, dark/light mode)
+You can now interact with the application in the browser. The typing functionality is connected to the game state, so as you type, the car will move along the road, and the WPM and accuracy will update in real-time.
+
+Would you like me to make any specific improvements or adjustments to the UI design?
+
+Feedback submitted
+
+

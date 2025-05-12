@@ -102,10 +102,64 @@ pub struct KeyState {
     pub last_press_time: Option<TimeInstant>,
 }
 
+// --- UI Section State ---
+#[derive(Default, Debug, Clone)]
+pub struct TopSectionState {
+    pub player1_wpm: f32,
+    pub player2_wpm: f32,
+    pub level_seed: String,
+    pub race_progress_percent: f32,
+}
+
+#[derive(Default, Debug, Clone)]
+pub struct PlayerViewState {
+    pub car_position: f32,  // 0.0 to 1.0 for progress along the road
+    pub speed: f32,         // Current typing speed
+    pub errors: usize,      // Number of typing errors
+    pub boosts: usize,      // Number of speed boosts earned
+}
+
+#[derive(Default, Debug, Clone)]
+pub struct TextInputState {
+    pub current_quote: String,
+    pub current_position: usize,
+    pub typed_text: String,
+    pub correct_chars: usize,
+    pub incorrect_chars: usize,
+}
+
+#[derive(Default, Debug, Clone)]
+pub struct KeyboardState {
+    pub key_map: std::collections::HashMap<String, KeyState>,
+    pub most_used_keys: Vec<String>,
+    pub least_used_keys: Vec<String>,
+}
+
+#[derive(Default, Debug, Clone)]
+pub struct FooterState {
+    pub wpm_history: Vec<f32>,
+    pub accuracy: f32,
+    pub current_mode: String,
+}
+
 // --- Main App ---
 pub struct TyperRacerApp {
     pub game: GameState,
     pub keyboard_state: std::collections::HashMap<String, KeyState>,
+    
+    // New UI section states
+    pub top_section: TopSectionState,
+    pub player1_view: PlayerViewState,
+    pub player2_view: PlayerViewState,
+    pub text_input: TextInputState,
+    pub keyboard_display: KeyboardState,
+    pub footer: FooterState,
+    
+    // UI state
+    pub ui_scale: f32,
+    pub dark_mode: bool,
+    pub show_ghost: bool,
+    pub show_keyboard: bool,
 }
 
 impl Default for TyperRacerApp {
@@ -141,13 +195,362 @@ impl Default for TyperRacerApp {
             keyboard_state.insert(key.to_string(), KeyState::default());
         }
         
-        Self { game, keyboard_state }
+        // Initialize the keyboard display state
+        let mut keyboard_display = KeyboardState::default();
+        keyboard_display.key_map = keyboard_state.clone();
+        
+        // Initialize text input state
+        let mut text_input = TextInputState::default();
+        if !game.quotes.is_empty() {
+            text_input.current_quote = game.quotes[0].expanded_meditation.clone();
+        }
+        
+        // Initialize top section state
+        let mut top_section = TopSectionState::default();
+        top_section.level_seed = game.seed.clone();
+        
+        Self {
+            game,
+            keyboard_state,
+            top_section,
+            player1_view: PlayerViewState::default(),
+            player2_view: PlayerViewState::default(),
+            text_input,
+            keyboard_display,
+            footer: FooterState {
+                current_mode: "Standard".to_string(),
+                ..Default::default()
+            },
+            ui_scale: 1.0,
+            dark_mode: true,
+            show_ghost: true,
+            show_keyboard: true,
+        }
     }
 }
 
 // --- WASM Timer Global ---
 #[no_mangle]
 pub static mut TYPER_RACER_ELAPSED: f32 = 0.0;
+
+impl TyperRacerApp {
+    // Update UI state based on game state
+    fn update_ui_state(&mut self) {
+        // Update top section
+        self.top_section.level_seed = self.game.seed.clone();
+        
+        // Calculate WPM if the game is running
+        if self.game.status == GameStatus::Running {
+            if self.game.elapsed > 0.0 {
+                // Words per minute calculation (assuming 5 chars per word)
+                let chars_typed = self.game.current_char as f32;
+                let minutes = self.game.elapsed / 60.0;
+                if minutes > 0.0 {
+                    self.top_section.player1_wpm = (chars_typed / 5.0) / minutes;
+                }
+            }
+            
+            // Update race progress percentage
+            if !self.game.quotes.is_empty() && self.game.current_quote < self.game.quotes.len() {
+                let quote = &self.game.quotes[self.game.current_quote];
+                let total_chars = quote.expanded_meditation.len() as f32;
+                if total_chars > 0.0 {
+                    self.top_section.race_progress_percent = (self.game.current_char as f32 / total_chars) * 100.0;
+                    
+                    // Update player view state
+                    self.player1_view.car_position = self.game.current_char as f32 / total_chars;
+                    self.player1_view.errors = self.game.errors;
+                }
+            }
+        }
+        
+        // Update text input state
+        if !self.game.quotes.is_empty() && self.game.current_quote < self.game.quotes.len() {
+            let quote = &self.game.quotes[self.game.current_quote];
+            self.text_input.current_quote = quote.expanded_meditation.clone();
+            self.text_input.current_position = self.game.current_char;
+            self.text_input.typed_text = self.game.input_buffer.clone();
+        }
+        
+        // Update footer
+        if self.game.status == GameStatus::Running && self.game.elapsed > 0.0 {
+            // Calculate accuracy
+            let total_chars = self.game.current_char + self.game.errors;
+            if total_chars > 0 {
+                self.footer.accuracy = (self.game.current_char as f32 / total_chars as f32) * 100.0;
+            }
+            
+            // Add current WPM to history every second
+            if self.game.elapsed as usize > self.footer.wpm_history.len() {
+                self.footer.wpm_history.push(self.top_section.player1_wpm);
+            }
+        }
+    }
+    
+    // Render the TOP section with scores, stats, and game status
+    fn render_top_section(&mut self, ui: &mut egui::Ui) {
+        ui.horizontal(|ui| {
+            ui.add_space(10.0);
+            
+            // Left side: Player 1 WPM
+            ui.vertical(|ui| {
+                ui.label("Player 1 WPM");
+                ui.heading(format!("{:.1}", self.top_section.player1_wpm));
+            });
+            
+            ui.add_space(20.0);
+            
+            // Center: Level seed and timer
+            ui.vertical(|ui| {
+                ui.set_min_width(ui.available_width() * 0.5);
+                ui.horizontal(|ui| {
+                    ui.label("Seed:");
+                    ui.monospace(&self.top_section.level_seed);
+                });
+                
+                ui.horizontal(|ui| {
+                    ui.label("Time:");
+                    ui.monospace(format!("{:.2}s", self.game.elapsed));
+                });
+                
+                // Race progress bar
+                let progress = self.top_section.race_progress_percent / 100.0;
+                ui.add(egui::ProgressBar::new(progress)
+                    .show_percentage()
+                    .animate(true));
+            });
+            
+            ui.add_space(20.0);
+            
+            // Right side: Player 2 / Ghost WPM
+            ui.vertical(|ui| {
+                ui.label("Ghost WPM");
+                ui.heading(format!("{:.1}", self.top_section.player2_wpm));
+            });
+            
+            ui.add_space(10.0);
+        });
+        
+        // Add separator
+        ui.separator();
+    }
+    
+    // Render the player view (LEFT or RIGHT section)
+    fn render_player_view(&mut self, ui: &mut egui::Ui, is_player1: bool) {
+        let view = if is_player1 { &self.player1_view } else { &self.player2_view };
+        
+        // Header
+        ui.heading(if is_player1 { "Player 1" } else { "Ghost" });
+        
+        // Road and car visualization
+        let (rect, _) = ui.allocate_exact_size(egui::vec2(ui.available_width(), 150.0), egui::Sense::hover());
+        
+        // Draw the road
+        ui.painter().rect_filled(
+            rect,
+            5.0,
+            egui::Color32::from_rgb(50, 50, 60)
+        );
+        
+        // Draw road markings
+        let marking_width = 20.0;
+        let marking_height = 5.0;
+        let marking_gap = 20.0;
+        let total_markings = (rect.width() / (marking_width + marking_gap)).floor() as i32;
+        
+        for i in 0..total_markings {
+            let x = rect.left() + (i as f32 * (marking_width + marking_gap));
+            let y = rect.center().y;
+            
+            ui.painter().rect_filled(
+                egui::Rect::from_center_size(
+                    egui::pos2(x + marking_width/2.0, y),
+                    egui::vec2(marking_width, marking_height)
+                ),
+                0.0,
+                egui::Color32::YELLOW
+            );
+        }
+        
+        // Draw the car
+        let car_width = 30.0;
+        let car_height = 20.0;
+        let car_x = rect.left() + (view.car_position * rect.width());
+        let car_y = rect.center().y - 10.0;
+        
+        ui.painter().rect_filled(
+            egui::Rect::from_min_size(
+                egui::pos2(car_x, car_y),
+                egui::vec2(car_width, car_height)
+            ),
+            3.0,
+            if is_player1 { egui::Color32::from_rgb(100, 200, 255) } else { egui::Color32::from_rgb(255, 100, 100) }
+        );
+        
+        // Stats
+        ui.horizontal(|ui| {
+            ui.label(format!("Speed: {:.1} WPM", if is_player1 { self.top_section.player1_wpm } else { self.top_section.player2_wpm }));
+            ui.label(format!("Errors: {}", view.errors));
+            ui.label(format!("Boosts: {}", view.boosts));
+        });
+    }
+    
+    // Render the MIDDLE section with text input
+    fn render_text_input_section(&mut self, ui: &mut egui::Ui) {
+        ui.add_space(10.0);
+        ui.heading("Type the text below:");
+        
+        // Display the quote with current position highlighted
+        let text_to_type = &self.text_input.current_quote;
+        let current_pos = self.text_input.current_position.min(text_to_type.len());
+        
+        // Create a rich text editor to display the quote with highlighting
+        let mut text_layout = egui::text::LayoutJob::default();
+        
+        // Add already typed text in green
+        if current_pos > 0 {
+            let typed_text = &text_to_type[..current_pos];
+            text_layout.append(
+                typed_text,
+                0.0,
+                egui::TextFormat {
+                    color: egui::Color32::from_rgb(100, 255, 100),
+                    ..Default::default()
+                }
+            );
+        }
+        
+        // Add current character to type in yellow
+        if current_pos < text_to_type.len() {
+            // Get the current character and the rest of the text
+            let current_char = &text_to_type[current_pos..=current_pos];
+            text_layout.append(
+                current_char,
+                0.0,
+                egui::TextFormat {
+                    color: egui::Color32::YELLOW,
+                    background: egui::Color32::from_rgb(80, 80, 0),
+                    ..Default::default()
+                }
+            );
+            
+            // Add remaining text in default color
+            if current_pos + 1 < text_to_type.len() {
+                let remaining_text = &text_to_type[current_pos+1..];
+                text_layout.append(
+                    remaining_text,
+                    0.0,
+                    egui::TextFormat::default()
+                );
+            }
+        }
+        
+        // Display the text with highlighting
+        ui.add(egui::Label::new(text_layout).wrap(true));
+        
+        // Add some space before the input field
+        ui.add_space(10.0);
+        
+        // Display the user's current input
+        ui.horizontal(|ui| {
+            ui.label("Your input:");
+            ui.monospace(&self.text_input.typed_text);
+            
+            // Add a blinking cursor
+            if (ui.input(|i| i.time) * 2.0).sin() > 0.0 {
+                ui.label("|");
+            }
+        });
+        
+        // Add separator
+        ui.add_space(10.0);
+        ui.separator();
+    }
+    
+    // Render the KEYBOARD section
+    fn render_keyboard_section(&mut self, ui: &mut egui::Ui) {
+        ui.heading("Keyboard");
+        
+        // Define keyboard layout
+        let row1 = ["Esc", "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12"];
+        let row2 = ["`", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "=", "Backspace"];
+        let row3 = ["Tab", "q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "[", "]", "\\"];
+        let row4 = ["CapsLock", "a", "s", "d", "f", "g", "h", "j", "k", "l", ";", "'", "Enter"];
+        let row5 = ["Shift", "z", "x", "c", "v", "b", "n", "m", ",", ".", "/", "RShift"];
+        let row6 = ["Ctrl", "Win", "Alt", "Space", "RAlt", "RWin", "Menu", "RCtrl"];
+        
+        // Helper function to render a row of keys
+        let render_key_row = |ui: &mut egui::Ui, keys: &[&str], key_size: f32| {
+            ui.horizontal(|ui| {
+                for key in keys {
+                    let size_factor = match *key {
+                        "Space" => 6.0,
+                        "Backspace" | "Enter" | "Shift" | "RShift" | "Tab" | "CapsLock" => 1.5,
+                        _ => 1.0,
+                    };
+                    
+                    let is_pressed = self.keyboard_state.get(&key.to_string())
+                        .map(|state| state.pressed)
+                        .unwrap_or(false);
+                    
+                    draw_key(ui, key, size_factor, key_size, is_pressed);
+                }
+            });
+        };
+        
+        // Render each row of the keyboard
+        let key_size = 30.0;
+        ui.vertical(|ui| {
+            render_key_row(ui, &row1, key_size);
+            ui.add_space(2.0);
+            render_key_row(ui, &row2, key_size);
+            render_key_row(ui, &row3, key_size);
+            render_key_row(ui, &row4, key_size);
+            render_key_row(ui, &row5, key_size);
+            render_key_row(ui, &row6, key_size);
+        });
+        
+        // Add separator
+        ui.add_space(10.0);
+        ui.separator();
+    }
+    
+    // Render the FOOTER section with stats and controls
+    fn render_footer_section(&mut self, ui: &mut egui::Ui) {
+        ui.horizontal(|ui| {
+            // Left side: Stats
+            ui.vertical(|ui| {
+                ui.set_min_width(ui.available_width() * 0.3);
+                ui.label(format!("Accuracy: {:.1}%", self.footer.accuracy));
+                ui.label(format!("Mode: {}", self.footer.current_mode));
+            });
+            
+            // Center: Controls
+            ui.vertical(|ui| {
+                ui.set_min_width(ui.available_width() * 0.4);
+                ui.horizontal(|ui| {
+                    if ui.button("Start").clicked() {
+                        // Start game logic would go here
+                    }
+                    if ui.button("Reset").clicked() {
+                        // Reset game logic would go here
+                    }
+                    if ui.button("Settings").clicked() {
+                        // Settings logic would go here
+                    }
+                });
+            });
+            
+            // Right side: Display options
+            ui.vertical(|ui| {
+                ui.set_min_width(ui.available_width());
+                ui.checkbox(&mut self.show_ghost, "Show Ghost");
+                ui.checkbox(&mut self.show_keyboard, "Show Keyboard");
+                ui.checkbox(&mut self.dark_mode, "Dark Mode");
+            });
+        });
+    }
+}
 
 impl eframe::App for TyperRacerApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
@@ -162,6 +565,56 @@ impl eframe::App for TyperRacerApp {
         unsafe {
             TYPER_RACER_ELAPSED = self.game.elapsed;
         }
+        
+        // --- Set theme ---
+        if self.dark_mode {
+            ctx.set_visuals(egui::Visuals::dark());
+        } else {
+            ctx.set_visuals(egui::Visuals::light());
+        }
+        
+        // --- Update UI state based on game state ---
+        self.update_ui_state();
+        
+        // --- Render the 5-section layout ---
+        egui::CentralPanel::default().show(ctx, |ui| {
+            // Use vertical layout for the main sections
+            ui.vertical(|ui| {
+                // TOP section
+                self.render_top_section(ui);
+                
+                // LEFT and RIGHT sections in a horizontal layout
+                ui.horizontal(|ui| {
+                    // LEFT section (Player 1)
+                    ui.vertical(|ui| {
+                        ui.set_min_width(ui.available_width() / 2.0);
+                        self.render_player_view(ui, true);
+                    });
+                    
+                    // RIGHT section (Player 2 / Ghost)
+                    ui.vertical(|ui| {
+                        ui.set_min_width(ui.available_width());
+                        if self.show_ghost {
+                            self.render_player_view(ui, false);
+                        } else {
+                            ui.label("Ghost view disabled");
+                        }
+                    });
+                });
+                
+                // MIDDLE section (Text input)
+                self.render_text_input_section(ui);
+                
+                // KEYBOARD section
+                if self.show_keyboard {
+                    self.render_keyboard_section(ui);
+                }
+                
+                // FOOTER section
+                self.render_footer_section(ui);
+            });
+        });
+        
         
         // --- Handle keyboard input ---
         // Reset all key states that have been pressed for more than 150ms

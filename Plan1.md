@@ -103,3 +103,9 @@ The application is now running with clipboard functionality enabled. The warning
 You can access the application at http://localhost:8080. The server is currently running in the background.
 
 This approach is more reliable than modifying the Makefile because it ensures that the RUSTFLAGS are properly set whenever you build with Trunk, which is the recommended way to build and serve WebAssembly applications.
+
+
+I'll help you implement the proper Trunk setup for your Typer Racer game to fix the issues with asset loading and clipboard functionality. Let's make the necessary changes to your project structure.
+
+First, let's update your index.html file to properly work with Trunk's asset injection:
+
