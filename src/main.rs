@@ -68,6 +68,11 @@ impl Default for TyperRacerApp {
     }
 }
 
+// --- WASM Timer Global ---
+#[cfg(target_arch = "wasm32")]
+#[no_mangle]
+pub static mut TYPER_RACER_ELAPSED: f32 = 0.0;
+
 impl eframe::App for TyperRacerApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         // --- Timing ---
@@ -75,6 +80,11 @@ impl eframe::App for TyperRacerApp {
             if let Some(start) = self.game.start_time {
                 self.game.elapsed = start.elapsed().as_secs_f32();
             }
+        }
+        // --- Update WASM Timer Global ---
+        #[cfg(target_arch = "wasm32")]
+        unsafe {
+            TYPER_RACER_ELAPSED = self.game.elapsed;
         }
 
         egui::CentralPanel::default().show(ctx, |ui| {
@@ -297,7 +307,7 @@ impl eframe::App for TyperRacerApp {
 // --- Persistence (localStorage for wasm, file for native) ---
 #[cfg(target_arch = "wasm32")]
 fn save_replay(replay: &[ReplayEvent]) {
-    use wasm_bindgen::JsCast;
+
     use web_sys::window;
     if let Ok(json) = serde_json::to_string(replay) {
         if let Some(storage) = window().and_then(|w| w.local_storage().ok().flatten()) {
@@ -315,7 +325,7 @@ fn save_replay(replay: &[ReplayEvent]) {
 
 #[cfg(target_arch = "wasm32")]
 fn load_replay() -> Vec<ReplayEvent> {
-    use wasm_bindgen::JsCast;
+
     use web_sys::window;
     if let Some(storage) = window().and_then(|w| w.local_storage().ok().flatten()) {
         if let Ok(Some(json)) = storage.get_item("typer_racer_replay") {
@@ -376,9 +386,9 @@ mod tests {
 #[cfg(target_arch = "wasm32")]
 pub fn main() {
     use eframe::WebOptions;
-    use eframe::wasm_bindgen::prelude::*;
+    use eframe::web;
     wasm_bindgen_futures::spawn_local(async {
-        eframe::start_web(
+        web::start_web(
             "the_canvas_id",
             WebOptions::default(),
             Box::new(|_cc| Box::new(TyperRacerApp::default())),
@@ -435,6 +445,26 @@ fn load_expanded_meditations() -> Vec<MeditationQuote> {
         expanded_meditation: "Focus on steady improvement.".to_string(),
     }]
 }
+
+// --- WASM Timer Export ---
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen::prelude::*;
+
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen]
+pub fn get_elapsed_time() -> f32 {
+    // Use the global singleton if available
+    // This is a hack: in eframe/egui, the App is managed by the framework,
+    // so we need a way to access the latest elapsed time.
+    // We'll use a static mut with unsafe for demonstration (not thread safe, but ok for wasm single-thread)
+    extern "C" {
+        static mut TYPER_RACER_ELAPSED: f32;
+    }
+    unsafe { TYPER_RACER_ELAPSED }
+}
+
+// In the App update, set TYPER_RACER_ELAPSED = self.game.elapsed;
+
 
 // Next steps:
 // - Expand input logic to update game state and stats
