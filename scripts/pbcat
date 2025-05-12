@@ -1,0 +1,43 @@
+#!/bin/bash
+
+# pbcat - A script to grep for content in Markdown files and copy it to clipboard
+# Usage: pbcat pattern [directory]
+#        If directory is not provided, current directory is used
+
+# Function to show usage
+show_usage() {
+    echo "Usage: pbcat pattern [directory]"
+    echo "Searches for pattern in *.md files using case-insensitive grep and copies the results to clipboard"
+    echo "If directory is not provided, current directory is used"
+}
+
+# Check if at least one argument is provided
+if [ $# -lt 1 ]; then
+    show_usage
+    exit 1
+fi
+PATH="$1"
+PATTERN="$2"
+DIRECTORY="."
+
+# If a second argument is provided, use it as the directory
+if [ $# -gt 1 ]; then
+    DIRECTORY="$2"
+fi
+
+# Use find to locate all *.md files, then pipe to xargs with null terminator
+# to handle filenames with spaces, then use grep with case-insensitive search
+find "$DIRECTORY" -type f -iname "$PATH" -print0 | xargs -0 grep -i "$PATTERN" | pbcopy
+
+# Check if anything was found and copied
+if [ -z "$(pbpaste)" ]; then
+    echo "No matches found for pattern: $PATTERN"
+    exit 0
+fi
+
+# Provide feedback that the operation was completed
+echo "Matched content copied to clipboard"
+
+# Also display what was copied to clipboard
+echo "Clipboard content:"
+pbpaste
