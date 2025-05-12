@@ -1,6 +1,6 @@
 # Typer Racer: Endurance Typing Race Game
 
-Ghost Typer is a head-to-head endurance typing game inspired by classic 2-player Tetris battles and racing games. The player races against a ghost opponent (a replay of a previous run or an AI) by typing quotes that appear as words on road signs, navigating a car through the course. The faster and more accurately you type, the faster your car moves!
+Ghost Typer is a head-to-head endurance typing game inspired by classic 2-player battles and racing games. The player races against a ghost opponent (a replay of a previous run or an AI) by typing quotes that appear as words on road signs, navigating a car through the course. The faster and more accurately you type, the faster your car moves!
 
 ## Features
 
