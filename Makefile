@@ -1,10 +1,10 @@
 # Makefile for Typer Racer
 
 # Default target: build everything and launch web
-all: build test wasm web
+all: build test wasm up
 
 # mall: clean, then build, test, wasm, web
-mall: clean build test wasm web
+mall: down clean build test wasm up
 
 # Build native Rust binary
 build:
@@ -26,7 +26,6 @@ web:
 up:
 	(trunk serve & echo $$! > .webserver.pid)
 # Take down the web server
-.PHONY: down
 
 down:
 	@echo "Checking if port 8080 (trunk serve) is open..."
