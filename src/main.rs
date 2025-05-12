@@ -121,24 +121,82 @@ impl eframe::App for TyperRacerApp {
             ui.group(|ui| {
                 ui.label("Player:");
                 if let Some(quote) = self.game.quotes.get(self.game.current_quote) {
-                    ui.horizontal(|ui| {
-                        for (i, ch) in quote.original_quotes[0].chars().enumerate() {
-                            let color = if i < self.game.input_buffer.len() {
-                                if self.game.input_buffer.chars().nth(i) == Some(ch) {
-                                    egui::Color32::GREEN
-                                } else {
-                                    egui::Color32::RED
-                                }
+                    // Layout: quote and input aligned horizontally, monospace font
+                    let quote_text = &quote.original_quotes[0];
+                    let input_text = &self.game.input_buffer;
+                    let char_count = quote_text.chars().count();
+                    let font_id = egui::FontId::monospace(22.0);
+
+                    // Calculate the width of each character block
+                    let char_width = ui.fonts(|f| f.glyph_width(&font_id, 'W'));
+                    let char_height = ui.fonts(|f| f.row_height(&font_id));
+
+                    // Reserve space for the horizontal layout
+                    let (rect, _resp) = ui.allocate_exact_size(
+                        egui::vec2(char_width * char_count as f32, char_height * 2.0 + 10.0),
+                        egui::Sense::focusable_noninteractive(),
+                    );
+                    let painter = ui.painter_at(rect);
+                    let base_y = rect.top();
+                    let quote_y = base_y;
+                    let input_y = base_y + char_height + 6.0;
+
+                    // Draw quote text (monospace, color-coded)
+                    for (i, ch) in quote_text.chars().enumerate() {
+                        let x = rect.left() + i as f32 * char_width;
+                        let color = if i < input_text.len() {
+                            if input_text.chars().nth(i) == Some(ch) {
+                                egui::Color32::GREEN
                             } else {
-                                egui::Color32::WHITE
-                            };
-                            ui.colored_label(color, ch.to_string());
-                        }
-                    });
-                }
-                let input = ui.text_edit_singleline(&mut self.game.input_buffer);
-                if input.changed() && self.game.status == GameStatus::Running {
-                    if let Some(quote) = self.game.quotes.get(self.game.current_quote) {
+                                egui::Color32::RED
+                            }
+                        } else {
+                            egui::Color32::WHITE
+                        };
+                        painter.text(
+                            egui::pos2(x, quote_y),
+                            egui::Align2::LEFT_TOP,
+                            ch,
+                            font_id.clone(),
+                            color,
+                        );
+                    }
+
+                    // Draw input text (monospace, same kerning)
+                    for (i, ch) in input_text.chars().enumerate() {
+                        let x = rect.left() + i as f32 * char_width;
+                        let color = if i < quote_text.len() && input_text.chars().nth(i) == quote_text.chars().nth(i) {
+                            egui::Color32::GREEN
+                        } else {
+                            egui::Color32::WHITE
+                        };
+                        painter.text(
+                            egui::pos2(x, input_y),
+                            egui::Align2::LEFT_TOP,
+                            ch,
+                            font_id.clone(),
+                            color,
+                        );
+                    }
+
+                    // Draw vertical caret/indicator at current character
+                    let caret_idx = input_text.chars().count().min(char_count);
+                    let caret_x = rect.left() + caret_idx as f32 * char_width;
+                    painter.line_segment(
+                        [
+                            egui::pos2(caret_x, quote_y - 2.0),
+                            egui::pos2(caret_x, input_y + char_height + 2.0),
+                        ],
+                        (2.0, egui::Color32::YELLOW),
+                    );
+
+                    // Hidden text edit for input capture (no visible box)
+                    let input_resp = egui::TextEdit::singleline(&mut self.game.input_buffer)
+                        .font(egui::TextStyle::Monospace)
+                        .desired_width(char_width * char_count as f32)
+                        .frame(false)
+                        .show(ui);
+                    if input_resp.response.changed() && self.game.status == GameStatus::Running {
                         let expected = &quote.original_quotes[0];
                         let input = &self.game.input_buffer;
                         let correct = expected.starts_with(input);
@@ -317,10 +375,12 @@ mod tests {
 // For wasm32 (web) builds, use the following entrypoint
 #[cfg(target_arch = "wasm32")]
 pub fn main() {
+    use eframe::WebOptions;
+    use eframe::wasm_bindgen::prelude::*;
     wasm_bindgen_futures::spawn_local(async {
         eframe::start_web(
             "the_canvas_id",
-            eframe::WebOptions::default(),
+            WebOptions::default(),
             Box::new(|_cc| Box::new(TyperRacerApp::default())),
         )
         .await
