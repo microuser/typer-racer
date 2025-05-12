@@ -58,6 +58,7 @@ impl GameState {
 pub type TimeInstant = std::time::Instant;
 
 #[cfg(target_arch = "wasm32")]
+#[derive(Debug, Clone)]
 pub struct TimeInstant(f64); // Timestamp in milliseconds
 
 #[cfg(target_arch = "wasm32")]
@@ -70,7 +71,7 @@ impl TimeInstant {
     
     pub fn elapsed(&self) -> TimeDuration {
         let now = Self::now();
-        TimeDuration((now.0 - self.0) / 1000.0) // Convert ms to seconds
+        TimeDuration(((now.0 - self.0) / 1000.0) as f32) // Convert ms to seconds
     }
 }
 
@@ -272,7 +273,7 @@ impl eframe::App for TyperRacerApp {
                 ui.heading("Keyboard Visualization");
                 ui.add_space(10.0);
                 
-                let available_width = ui.available_width();
+                let _available_width = ui.available_width();
                 let key_size = 40.0;
                 let key_margin = 4.0;
                 let key_spacing = key_size + key_margin;
@@ -701,7 +702,7 @@ pub fn main() {
             .start(
                 "the_canvas_id", // HTML Canvas ID
                 web_options,
-                Box::new(|cc| Box::new(TyperRacerApp::default())),
+                Box::new(|_cc| Box::new(TyperRacerApp::default())),
             )
             .await
             .expect("Failed to start eframe");

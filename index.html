@@ -28,7 +28,8 @@
 <div id="timer" style="display:block;position:fixed;top:60px;left:50%;transform:translateX(-50%);background:#252525;padding:8px 28px;border-radius:8px;font-size:1.3em;box-shadow:0 2px 12px #0007;z-index:600;min-width:120px;text-align:center;">Time: <span id="timer_value">0.00</span>s</div>
 <canvas id="the_canvas_id" class="egui"></canvas>
     <script type="module">
-        import init, { get_elapsed_time } from './pkg/typer_racer.js';
+        // Import from the root path where Trunk places the generated files
+        import init, { get_elapsed_time } from './typer_racer.js';
         let wasmReady = false;
         function updateTimer() {
             if (wasmReady && typeof get_elapsed_time === 'function') {

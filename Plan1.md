@@ -76,5 +76,5 @@ Run trunk serve or open index.html with a local server to view your WASM build i
 The error about missing index.html should be resolved.
 If you need further tweaks to the HTML, want a loading spinner, favicon, or want to customize the web experience, just let me know!
 
-
+we currently have a build error, but we never finished the UI. or the game. First we wanted to be able to build the interface, but currrently we seems to have a working ui in rust, but with a UI with a simple text, which we want to be the same as the one in the desktop application, and unified codebase where we can use both the system binary and have a warm target deployed with help of hosting via trunk serve via localhost.  Read all the markdown *.md files as requiremnets for design. We want to start bur right now we are stuck at calling start because a large refactor needs to occur. 
 
