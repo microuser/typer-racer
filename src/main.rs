@@ -71,22 +71,26 @@ pub static mut TYPER_RACER_ELAPSED: f32 = 0.0;
 // For wasm32 (web) builds, use the following entrypoint
 #[cfg(target_arch = "wasm32")]
 pub fn main() {
-    // This is the correct entry point for eframe 0.27 with wasm-bindgen
-    // Set up panic hook and logger for better debugging in browser
+    use wasm_bindgen::JsCast;
     std::panic::set_hook(Box::new(console_error_panic_hook::hook));
     console_log::init_with_level(log::Level::Debug).expect("failed to initialize logger");
 
-    // eframe 0.27 uses a different approach for web initialization
-    // The main entry point is handled by wasm-bindgen
     let web_options = eframe::WebOptions::default();
 
-    // Use wasm_bindgen_futures to handle the async nature of web initialization
     wasm_bindgen_futures::spawn_local(async {
+        let window = web_sys::window().unwrap();
+        let document = window.document().unwrap();
+        let canvas = document
+            .get_element_by_id("the_canvas_id")
+            .unwrap()
+            .dyn_into::<web_sys::HtmlCanvasElement>()
+            .unwrap();
+
         eframe::WebRunner::new()
             .start(
-                "the_canvas_id", // HTML Canvas ID
+                canvas,
                 web_options,
-                Box::new(|_cc| Box::new(TyperRacerApp::default())),
+                Box::new(|_cc| Ok(Box::new(TyperRacerApp::default()))),
             )
             .await
             .expect("Failed to start eframe");
