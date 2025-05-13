@@ -4,6 +4,9 @@ use eframe::egui;
 
 impl eframe::App for TyperRacerApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        // Update the timer every frame
+        self.update_timer(ctx);
+
         use crate::keyboard::simulator::KeyboardSimulator;
         use std::time::{SystemTime, UNIX_EPOCH};
         // ... (other code remains the same)
@@ -73,5 +76,37 @@ impl TyperRacerApp {
 
 
 
+use crate::time::TimeInstant;
+#[cfg(target_arch = "wasm32")]
+use crate::TYPER_RACER_ELAPSED;
+
 impl TyperRacerApp {
+    /// Create a new app, initializing the timer
+    pub fn new() -> Self {
+        let mut app = Self::default();
+        app.game.start_time = Some(TimeInstant::now());
+        app
+    }
+
+    /// Update the timer every frame
+    pub fn update_timer(&mut self, ctx: &egui::Context) {
+        if let Some(start_time) = self.game.start_time {
+            let elapsed = start_time.elapsed();
+            self.top_section.timer_seconds = elapsed.as_secs_f32();
+            #[cfg(target_arch = "wasm32")]
+            unsafe {
+                TYPER_RACER_ELAPSED = self.top_section.timer_seconds;
+            }
+            ctx.request_repaint();
+        }
+    }
+
+    /// Render the timer in MM:SS.t format
+    pub fn render_timer(&self, ui: &mut egui::Ui) {
+        let minutes = (self.top_section.timer_seconds / 60.0) as i32;
+        let seconds = (self.top_section.timer_seconds % 60.0) as i32;
+        let tenths = ((self.top_section.timer_seconds * 10.0) % 10.0) as i32;
+        ui.heading(format!("{:02}:{:02}.{}", minutes, seconds, tenths));
+    }
 }
+

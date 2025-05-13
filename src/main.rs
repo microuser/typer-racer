@@ -16,6 +16,8 @@ use crate::keyboard::input::TypingBuffer;
 mod impl_typer_racer_app;
 
 mod typer_racer_app;
+pub mod time;
+
 pub use typer_racer_app::TyperRacerApp;
 
 // --- Time Handling for Cross-Platform ---
@@ -90,7 +92,7 @@ pub fn main() {
             .start(
                 canvas,
                 web_options,
-                Box::new(|_cc| Ok(Box::new(TyperRacerApp::default()))),
+                Box::new(|_cc| Ok(Box::new(TyperRacerApp::new()))),
             )
             .await
             .expect("Failed to start eframe");
@@ -129,7 +131,7 @@ fn main() {
     eframe::run_native(
         "Typer Racer",
         eframe::NativeOptions::default(),
-        Box::new(|_cc| Ok(Box::new(TyperRacerApp::default()))),
+        Box::new(|_cc| Ok(Box::new(TyperRacerApp::new()))),
     )
     .expect("Failed to start native app");
 }
