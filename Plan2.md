@@ -288,3 +288,100 @@ Create the new files with module skeletons.
 Move the code in logical chunks.
 Update all imports and module declarations.
 Would you like to proceed with this structure?
+
+
+Great direction! Here’s how I’ll proceed, step by step, to consolidate keyboard input and emulate a true “typing box” experience—without any HTML/native input boxes:
+
+Goals
+All keyboard input (physical and on-screen) is handled by your custom logic.
+There is no native text input box.
+The UI displays:
+The target quote (the “Target Text”).
+The user’s typed text, shown as if in an input box, with a blinking cursor and full keyboard navigation (left/right arrows, backspace, insert at cursor, etc.).
+All keyboard events are analyzed in one place (centralized input handler).
+The keyboard UI and logic are consolidated in a single module/file.
+Implementation Plan
+Remove all HTML/native input fields from the UI.
+Centralize keyboard event handling (physical and on-screen clicks) in a single handler, ideally in a keyboard.rs or sections_keyboard.rs module.
+UI:
+Show the “Target Text” (the quote to type).
+Show the “Typed Text” (the user’s buffer), with a blinking cursor at the right spot.
+Allow left/right navigation, character insertion, and backspace.
+Animate keys on the on-screen keyboard when pressed.
+Wire up: All keyboard events update the buffer and cursor, and the UI always reflects the current state.
+Next Steps
+Step 1: Move all keyboard event analysis and buffer/cursor management into sections_keyboard.rs (or a new keyboard_input.rs if you prefer).
+
+Step 2: Update the UI so that the text input area is fully custom-drawn—no native input box.
+
+Step 3: Ensure on-screen key clicks and physical key presses both call the same handler.
+
+Would you like this logic in sections_keyboard.rs or a new keyboard_input.rs?
+I recommend sections_keyboard.rs for now, to keep things modular.
+If you approve, I will:
+
+Move all keyboard input logic and buffer/cursor state into sections_keyboard.rs.
+Remove any HTML/native input boxes from the UI.
+Update the UI to show target text and typed text with cursor, and handle all navigation and editing with your custom logic.
+Let me know if you want to proceed or have a preferred file/module name!
+
+ have created a modular structure for your keyboard and typing features in src/keyboard/:
+
+input.rs: Centralizes all keyboard input handling, buffer/cursor state, navigation, and editing logic with a TypingBuffer struct.
+onscreen.rs: Handles on-screen keyboard rendering and animation (stub provided, ready for expansion).
+display.rs: Draws the target text, typed text, and a blinking cursor—no native input box, fully custom.
+mod.rs: Re-exports all submodules for easy import.
+Next Steps:
+
+Move your main keyboard event logic to use TypingBuffer from keyboard/input.rs.
+Have your UI call render_typing_area from keyboard/display.rs to show the typing experience.
+Expand onscreen.rs to render and animate the visual keyboard, forwarding clicks to the input handler.
+This structure will keep each feature focused and your files short and easy to maintain.
+Let me know if you want help wiring these modules into your app or further splitting other features!
+
+Refactor your main app state to use TypingBuffer (from keyboard/input.rs) for all typed text and cursor management.
+Remove any legacy input buffer/cursor fields from other structs.
+2. Centralize Keyboard Event Handling
+Route all physical key events and on-screen key clicks into methods on TypingBuffer.
+Ensure that navigation (left/right), backspace, and character insertion all use these methods.
+3. Replace Native Input with Custom Typing Display
+Remove any HTML/native input boxes from your UI.
+In your main typing section (previously the input area), use render_typing_area from keyboard/display.rs to show:
+The target quote (“Target Text”)
+The user’s typed text with a blinking cursor at the correct position
+4. Connect On-Screen Keyboard
+Use render_keyboard from keyboard/onscreen.rs to draw the visual keyboard.
+When a key is clicked, call the appropriate TypingBuffer method (insert, move, backspace, etc.).
+5. Update Main App and Section Wiring
+Import and use the new modules in your main app (main.rs) and/or sections_keyboard.rs.
+Ensure all state updates and rendering use the new modular structure.
+6. Test and Iterate
+Build and run the app.
+Verify:
+All keyboard input (physical and on-screen) updates the buffer and cursor.
+The UI always reflects the current state.
+There are no native input boxes left.
+Add error highlighting, key animations, or other enhancements as desired.
+Would you like me to begin with step 1 and refactor your main state to use TypingBuffer, or do you want to start with the UI wiring?
+Let me know your preference and I’ll proceed!
+
+
+I have completed the following major refactor steps to fully modularize and centralize your typing logic:
+
+Summary of Changes
+All references to input_buffer and cursor_pos in GameState have been removed and replaced with self.typing.buffer and self.typing.cursor (from your new TypingBuffer).
+All keyboard input (physical and on-screen) is now routed through TypingBuffer methods.
+All native/HTML input fields (TextEdit::singleline) have been removed.
+The typing UI is rendered using your custom render_typing_area from keyboard/display.rs, showing the target and typed text with a blinking cursor.
+Legacy and test code has also been updated to use the new typing buffer.
+The on-screen keyboard is ready to be expanded and is connected to the same buffer logic.
+Next Steps
+Build and Test:
+The codebase should now build cleanly. I recommend running cargo build and then testing the UI to make sure all typing, navigation, and editing works as expected.
+Expand Features:
+You can now expand the on-screen keyboard rendering and animation in keyboard/onscreen.rs.
+Add error highlighting, stats, or other enhancements as needed.
+Let me know if you want further modularization or new features!
+Would you like me to run the build for you now to confirm everything is working? Or do you want to proceed with further UI/feature enhancements?
+
+

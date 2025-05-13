@@ -16,13 +16,7 @@ pub struct PlayerViewState {
 }
 
 #[derive(Default, Debug, Clone)]
-pub struct TextInputState {
-    pub current_quote: String,
-    pub current_position: usize,
-    pub typed_text: String,
-    pub correct_chars: usize,
-    pub incorrect_chars: usize,
-}
+
 
 #[derive(Default, Debug, Clone)]
 pub struct FooterState {
@@ -61,15 +55,6 @@ impl PlayerViewState {
         ui.vertical(|ui| {
             ui.heading("Right Section");
             ui.label("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam ac.");
-        });
-    }
-}
-
-impl crate::keyboard::KeyboardState {
-    pub fn render_keyboard_section(&self, ui: &mut egui::Ui) {
-        ui.vertical(|ui| {
-            ui.heading("Keyboard Section");
-            ui.label("[Keyboard visualization will go here]");
         });
     }
 }
