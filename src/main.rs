@@ -160,6 +160,8 @@ pub struct TyperRacerApp {
     pub dark_mode: bool,
     pub show_ghost: bool,
     pub show_keyboard: bool,
+    // Track the last pressed key (case-sensitive string)
+    pub last_pressed_key: Option<String>,
 }
 
 impl Default for TyperRacerApp {
@@ -225,6 +227,7 @@ impl Default for TyperRacerApp {
             dark_mode: true,
             show_ghost: true,
             show_keyboard: true,
+            last_pressed_key: None,
         }
     }
 }
@@ -480,6 +483,8 @@ impl TyperRacerApp {
         let row6 = ["Ctrl", "Win", "Alt", "Space", "RAlt", "RWin", "Menu", "RCtrl"];
         
         // Helper function to render a row of keys
+        // Track the last pressed key (case-sensitive string)
+        let last_pressed_key = self.last_pressed_key.as_ref().map(|s| s.as_str());
         let render_key_row = |ui: &mut egui::Ui, keys: &[&str], key_size: f32| {
             ui.horizontal(|ui| {
                 for key in keys {
@@ -488,11 +493,12 @@ impl TyperRacerApp {
                         "Backspace" | "Enter" | "Shift" | "RShift" | "Tab" | "CapsLock" => 1.5,
                         _ => 1.0,
                     };
-                    
-                    let is_pressed = self.keyboard_state.get(&key.to_string())
-                        .map(|state| state.pressed)
-                        .unwrap_or(false);
-                    
+                    // Highlight if last pressed key matches this key (case-insensitive)
+                    let is_pressed = if let Some(last) = last_pressed_key {
+                        last.eq_ignore_ascii_case(key)
+                    } else {
+                        false
+                    };
                     draw_key(ui, key, size_factor, key_size, is_pressed);
                 }
             });
@@ -698,8 +704,25 @@ impl eframe::App for TyperRacerApp {
                     egui::Key::Z => "z".to_string(),
                     _ => return, // Skip other keys
                 };
-                
-                // Update key state
+                // Save the last pressed key (case-sensitive)
+                if pressed {
+                    self.last_pressed_key = Some(key_str.clone());
+                }
+                // Log key press event for debugging
+                {
+                    #[cfg(not(target_arch = "wasm32"))]
+                    {
+                        log::info!("Key event: '{}' pressed={}", key_str, pressed);
+                    }
+                    #[cfg(target_arch = "wasm32")]
+                    {
+                        use wasm_bindgen::JsValue;
+                        use web_sys::console;
+                        let msg = format!("Key event: '{}' pressed={}", key_str, pressed);
+                        console::log_1(&JsValue::from_str(&msg));
+                    }
+                }
+                // Update key state (legacy, may be removed)
                 if let Some(state) = self.keyboard_state.get_mut(&key_str) {
                     state.pressed = pressed;
                     if pressed {
