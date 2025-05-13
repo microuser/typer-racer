@@ -1,4 +1,18 @@
 // --- Time Handling for Cross-Platform ---
+
+/// Returns the current time in seconds since the Unix epoch as f64, cross-platform.
+#[cfg(target_arch = "wasm32")]
+pub fn now_seconds() -> f64 {
+    js_sys::Date::now() / 1000.0
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub fn now_seconds() -> f64 {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
+    now.as_secs_f64()
+}
+
 #[cfg(not(target_arch = "wasm32"))]
 pub type TimeInstant = std::time::Instant;
 
