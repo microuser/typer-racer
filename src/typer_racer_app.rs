@@ -34,7 +34,10 @@ impl Default for TyperRacerApp {
         TyperRacerApp {
             game: GameState::default(),
             typing: TypingBuffer::default(),
-            top_section: TopSectionState::default(),
+            top_section: TopSectionState {
+                timer_seconds: 0.0,
+                ..TopSectionState::default()
+            },
             player1_view: PlayerViewState::default(),
             player2_view: PlayerViewState::default(),
             text_input: TextInputState {

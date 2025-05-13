@@ -7,8 +7,8 @@
     <!-- Specify the binary target for trunk to build with WASM optimization -->
     
 <script type="module">
-import init, * as bindings from '/typer-racer-86171075c4b768ee.js';
-const wasm = await init({ module_or_path: '/typer-racer-86171075c4b768ee_bg.wasm' });
+import init, * as bindings from '/typer-racer-be0d81f1b4c43fb6.js';
+const wasm = await init({ module_or_path: '/typer-racer-be0d81f1b4c43fb6_bg.wasm' });
 
 
 window.wasmBindings = bindings;
@@ -61,7 +61,7 @@ dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
         #the_canvas_id { display: block; margin: 0 auto; background: #222; border-radius: 8px; box-shadow: 0 0 24px #0008; }
         .egui { width: 100vw; height: 100vh; }
     </style>
-<link rel="modulepreload" href="/typer-racer-86171075c4b768ee.js" crossorigin="anonymous" integrity="sha384-W+3gCtLU9nwdrkQeQxTq9jB7jqhyFK5jNLxOCpojAecKKKE2qI2gH5PuL2NfcKSH"><link rel="preload" href="/typer-racer-86171075c4b768ee_bg.wasm" crossorigin="anonymous" integrity="sha384-mtJxg3bbIDLPsrBhSzuwatqYxoVvwEDn0geqfjOue6VWrISR7IhAN+M0QzVXjCJo" as="fetch" type="application/wasm"></head>
+<link rel="modulepreload" href="/typer-racer-be0d81f1b4c43fb6.js" crossorigin="anonymous" integrity="sha384-W+3gCtLU9nwdrkQeQxTq9jB7jqhyFK5jNLxOCpojAecKKKE2qI2gH5PuL2NfcKSH"><link rel="preload" href="/typer-racer-be0d81f1b4c43fb6_bg.wasm" crossorigin="anonymous" integrity="sha384-GloEAtsADydkNf7w7czT93Qrvk+DtjFcMCNnIyRBgrJEiZVY4YpUfSErSoWfoivV" as="fetch" type="application/wasm"></head>
 <body>
     <div id="loading" style="position:fixed;z-index:1000;top:0;left:0;width:100vw;height:100vh;display:flex;align-items:center;justify-content:center;background:#181818;">
         <div style="text-align:center;">

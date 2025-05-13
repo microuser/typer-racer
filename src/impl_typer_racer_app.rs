@@ -25,6 +25,7 @@ impl TyperRacerApp {
     pub fn update_ui_state(&mut self) {
         // Update top section
         self.top_section.level_seed = self.game.seed.clone();
+        self.top_section.timer_seconds = self.game.elapsed;
         // Calculate WPM if the game is running
         if self.game.status == crate::GameStatus::Running {
             if self.game.elapsed > 0.0 {

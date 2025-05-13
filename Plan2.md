@@ -487,3 +487,45 @@ Both main.rs and app_init.rs now use this function, eliminating duplication and 
 You can now add or change keyboard keys in one place, and all initialization will remain consistent.
 
 If you’d like, I can help you further centralize or modularize other repeated initialization logic (such as for UI sections or display state), or move on to the next feature or refactor. Let me know your preference!
+
+
+
+When building the UI for macos. Can we have it share the same sections as defined for UI in WASM. There are two ways to run this application from a user perspective, 1) a desktop app, 2) a WASM browswer app. I want the sections with Up, Left, Right, Keyboard, Footer to be shown as described in *.md files. Make Graphical UI elements and variables work. Start by showing the timer. Also start the timer for both upon first viewing. 
+
+
+To address your request, here's what I will do:
+
+Unify UI Sections: Ensure that both the macOS desktop and WASM browser app share the same UI sections: Up, Left, Right, Keyboard, Footer, as described in your Markdown documentation.
+Graphical UI Elements: Implement graphical elements and variables for these sections.
+Timer: Display a timer in the UI, and ensure it starts upon first viewing for both platforms.
+Cross-Platform Logic: Make sure the logic for the timer and sections is shared or at least consistent between the desktop and WASM builds.
+To proceed, I need to:
+
+Find the relevant Markdown files that describe the UI sections.
+Review how the UI is currently defined for both macOS and WASM in your Rust codebase.
+Implement or refactor the timer logic so it is initialized and displayed in both environments.
+Let's start by finding the Markdown files describing the UI sections and then examine how the UI is structured in your Rust codebase.
+
+
+Here’s how I’ll proceed based on your requirements and the codebase analysis:
+
+1. UI Section Unification
+Both macOS and WASM already use the same Rust codebase and section structs (Top, Left, Right, Keyboard, Footer) as described in your Markdown plans.
+The TyperRacerApp struct holds state for each section, and each section (e.g., TopSectionState) has a render method.
+2. Timer Display & Start Logic
+The Top section currently displays WPM, seed, and progress, but not an explicit timer.
+The timer (elapsed time) is present as self.game.elapsed in the app state and is updated during the game.
+The timer should be shown in the Top section for both platforms.
+The timer should start on first viewing (i.e., when the UI is first rendered and the game status is set to Running).
+3. Implementation Plan
+Add a timer_seconds or similar field to TopSectionState (or pass as an argument to its render method).
+Update the render method in sections_top.rs to display the timer.
+In the main app update, ensure the timer is updated and passed to the Top section for rendering.
+This will work for both macOS and WASM, as the time abstraction is already cross-platform.
+4. Next Steps
+I will:
+
+Add a timer display to the Top section UI.
+Ensure the timer starts on first viewing (when the game status becomes Running).
+Make sure this logic is shared for both platforms.
+Let’s make these changes
