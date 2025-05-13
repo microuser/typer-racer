@@ -35,6 +35,7 @@ pub struct GameState {
     pub current_quote: usize,
     pub current_char: usize,
     pub input_buffer: String,
+    pub cursor_pos: usize, // New: cursor position in input_buffer
     pub status: GameStatus,
     pub errors: usize,
     pub start_time: Option<TimeInstant>,
@@ -174,23 +175,23 @@ impl Default for TyperRacerApp {
         // Initialize keyboard state with all keys
         let mut keyboard_state = std::collections::HashMap::new();
         
-        // Standard US QWERTY keyboard keys
+        // Standard US QWERTY keyboard keys (now all uppercase)
         let keys = [
             // Row 1: Function keys and numbers
-            "Esc", "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12",
-            "`", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "=", "Backspace",
+            "ESC", "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12",
+            "`", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "=", "BACKSPACE",
             // Row 2
-            "Tab", "q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "[", "]", "\\",
+            "TAB", "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "[", "]", "\\",
             // Row 3
-            "CapsLock", "a", "s", "d", "f", "g", "h", "j", "k", "l", ";", "'", "Enter",
+            "CAPSLOCK", "A", "S", "D", "F", "G", "H", "J", "K", "L", ";", "'", "ENTER",
             // Row 4
-            "Shift", "z", "x", "c", "v", "b", "n", "m", ",", ".", "/", "RShift",
+            "SHIFT", "Z", "X", "C", "V", "B", "N", "M", ",", ".", "/", "RSHIFT",
             // Row 5
-            "Ctrl", "Win", "Alt", "Space", "RAlt", "RWin", "Menu", "RCtrl",
+            "CTRL", "WIN", "ALT", "SPACE", "RALT", "RWIN", "MENU", "RCTRL",
             // Arrow keys
-            "Up", "Down", "Left", "Right",
+            "UP", "DOWN", "LEFT", "RIGHT",
             // Navigation cluster
-            "Insert", "Delete", "Home", "End", "PgUp", "PgDn",
+            "INSERT", "DELETE", "HOME", "END", "PGUP", "PGDN",
         ];
         
         for key in keys.iter() {
@@ -470,24 +471,14 @@ impl TyperRacerApp {
         ui.separator();
     }
     
-    // Render the KEYBOARD section
-    fn render_keyboard_section(&mut self, ui: &mut egui::Ui) {
-        ui.heading("Keyboard");
-        
-        // Define keyboard layout
-        let row1 = ["Esc", "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12"];
-        let row2 = ["`", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "=", "Backspace"];
-        let row3 = ["Tab", "q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "[", "]", "\\"];
-        let row4 = ["CapsLock", "a", "s", "d", "f", "g", "h", "j", "k", "l", ";", "'", "Enter"];
-        let row5 = ["Shift", "z", "x", "c", "v", "b", "n", "m", ",", ".", "/", "RShift"];
-        let row6 = ["Ctrl", "Win", "Alt", "Space", "RAlt", "RWin", "Menu", "RCtrl"];
-        
-        // Helper function to render a row of keys
-        // Track the last pressed key (case-sensitive string)
-        let last_pressed_key = self.last_pressed_key.as_ref().map(|s| s.as_str());
-        let render_key_row = |ui: &mut egui::Ui, keys: &[&str], key_size: f32| {
-            ui.horizontal(|ui| {
-                for key in keys {
+    ui.painter().rect_filled(
+        egui::Rect::from_min_size(
+            egui::pos2(car_x, car_y),
+            egui::vec2(car_width, car_height)
+        ),
+        3.0,
+        if is_player1 { egui::Color32::from_rgb(100, 200, 255) } else { egui::Color32::from_rgb(255, 100, 100) }
+    );
                     let size_factor = match *key {
                         "Space" => 6.0,
                         "Backspace" | "Enter" | "Shift" | "RShift" | "Tab" | "CapsLock" => 1.5,
@@ -499,53 +490,61 @@ impl TyperRacerApp {
                     } else {
                         false
                     };
-                    let response = draw_key(ui, key, size_factor, key_size, is_pressed);
+                    // Animation for key: fade highlight for 0.2s after press
+                    let anim = if let Some(state) = self.keyboard_state.get(&key.to_string().to_uppercase()) {
+                        if let Some(t) = state.last_press_time {
+                            let now = self.game.elapsed;
+                            let press_time = match t {
+                                #[cfg(not(target_arch = "wasm32"))]
+                                t => t.elapsed().as_secs_f32(),
+                                #[cfg(target_arch = "wasm32")]
+                                _ => now - t.0 as f32 / 1000.0,
+                            };
+                            let fade = 2.0;
+                            (1.0 - (press_time / fade)).clamp(0.0, 1.0)
+                        } else { 0.0 }
+                    } else { 0.0 };
+                    let response = draw_key(ui, key, size_factor, key_size, anim);
                     // If the key is clicked, treat it as a key press
                     if response.clicked() {
                         // Animate/highlight as pressed
-                        self.last_pressed_key = Some(key.to_string());
-                        // Handle special keys
+                        self.last_pressed_key = Some(key.to_string().to_uppercase());
+                        // Handle cursor movement and text editing for on-screen keys
                         match *key {
-                            "Backspace" => { self.game.input_buffer.pop(); },
-                            "Space" => { self.game.input_buffer.push(' '); },
-                            "Enter" => { self.game.input_buffer.push('\n'); },
+                            "Left" => {
+                                if self.game.cursor_pos > 0 {
+                                    self.game.cursor_pos -= 1;
+                                }
+                            },
+                            "Right" => {
+                                if self.game.cursor_pos < self.game.input_buffer.len() {
+                                    self.game.cursor_pos += 1;
+                                }
+                            },
+                            "Backspace" => {
+                                if self.game.cursor_pos > 0 {
+                                    self.game.input_buffer.remove(self.game.cursor_pos - 1);
+                                    self.game.cursor_pos -= 1;
+                                }
+                            },
+                            "Space" => {
+                                self.game.input_buffer.insert(self.game.cursor_pos, ' ');
+                                self.game.cursor_pos += 1;
+                            },
+                            "Enter" => {
+                                self.game.input_buffer.insert(self.game.cursor_pos, '\n');
+                                self.game.cursor_pos += 1;
+                            },
                             _ => {
                                 // Only add single-char keys (letters, numbers, symbols)
                                 if key.len() == 1 {
-                                    self.game.input_buffer.push_str(key);
+                                    self.game.input_buffer.insert_str(self.game.cursor_pos, key);
+                                    self.game.cursor_pos += key.len();
                                 }
                             }
                         }
                     }
                 }
-            });
-        };
-        
-        // Render each row of the keyboard
-        let key_size = 30.0;
-        ui.vertical(|ui| {
-            render_key_row(ui, &row1, key_size);
-            ui.add_space(2.0);
-            render_key_row(ui, &row2, key_size);
-            render_key_row(ui, &row3, key_size);
-            render_key_row(ui, &row4, key_size);
-            render_key_row(ui, &row5, key_size);
-            render_key_row(ui, &row6, key_size);
-        });
-        
-        // Add separator
-        ui.add_space(10.0);
-        ui.separator();
-    }
-    
-    // Render the FOOTER section with stats and controls
-    fn render_footer_section(&mut self, ui: &mut egui::Ui) {
-        ui.horizontal(|ui| {
-            // Left side: Stats
-            ui.vertical(|ui| {
-                ui.set_min_width(ui.available_width() * 0.3);
-                ui.label(format!("Accuracy: {:.1}%", self.footer.accuracy));
-                ui.label(format!("Mode: {}", self.footer.current_mode));
             });
             
             // Center: Controls
@@ -601,6 +600,36 @@ impl eframe::App for TyperRacerApp {
         
         // --- Render the 5-section layout ---
         egui::CentralPanel::default().show(ctx, |ui| {
+            // Show a fading overlay with the last key pressed
+            if let Some(key) = &self.last_pressed_key {
+                if let Some(state) = self.keyboard_state.get(key) {
+                    if let Some(t) = state.last_press_time {
+                        let now = self.game.elapsed;
+                        let press_time = match t {
+                            #[cfg(not(target_arch = "wasm32"))]
+                            t => t.elapsed().as_secs_f32(),
+                            #[cfg(target_arch = "wasm32")]
+                            _ => now - t.0 as f32 / 1000.0,
+                        };
+                        let fade = 2.0;
+                        let alpha = (1.0 - (press_time / fade)).clamp(0.0, 1.0);
+                        if alpha > 0.01 {
+                            let overlay_text = format!("{}", key);
+                            let color = egui::Color32::from_rgba_unmultiplied(100, 180, 255, (255.0 * alpha) as u8);
+                            let font_id = egui::FontId::proportional(36.0);
+                            let painter = ui.painter();
+                            let rect = ui.max_rect();
+                            painter.text(
+                                egui::pos2(rect.center().x, rect.top() + 30.0),
+                                egui::Align2::CENTER_CENTER,
+                                overlay_text,
+                                font_id,
+                                color
+                            );
+                        }
+                    }
+                }
+            }
             // Use vertical layout for the main sections
             ui.vertical(|ui| {
                 // TOP section
@@ -666,23 +695,23 @@ impl eframe::App for TyperRacerApp {
         // Process input events
         if let Some(event) = ctx.input(|i| i.events.last().cloned()) {
             if let egui::Event::Key { key, pressed, .. } = event {
-                // Convert egui key to our keyboard key format
+                // Convert egui key to our keyboard key format (always uppercase)
                 let key_str = match key {
-                    egui::Key::Space => "Space".to_string(),
-                    egui::Key::Enter => "Enter".to_string(),
-                    egui::Key::Tab => "Tab".to_string(),
-                    egui::Key::Backspace => "Backspace".to_string(),
-                    egui::Key::Escape => "Esc".to_string(),
-                    egui::Key::Insert => "Insert".to_string(),
-                    egui::Key::Delete => "Delete".to_string(),
-                    egui::Key::Home => "Home".to_string(),
-                    egui::Key::End => "End".to_string(),
-                    egui::Key::PageUp => "PgUp".to_string(),
-                    egui::Key::PageDown => "PgDn".to_string(),
-                    egui::Key::ArrowLeft => "Left".to_string(),
-                    egui::Key::ArrowRight => "Right".to_string(),
-                    egui::Key::ArrowUp => "Up".to_string(),
-                    egui::Key::ArrowDown => "Down".to_string(),
+                    egui::Key::Space => "SPACE".to_string(),
+                    egui::Key::Enter => "ENTER".to_string(),
+                    egui::Key::Tab => "TAB".to_string(),
+                    egui::Key::Backspace => "BACKSPACE".to_string(),
+                    egui::Key::Escape => "ESC".to_string(),
+                    egui::Key::Insert => "INSERT".to_string(),
+                    egui::Key::Delete => "DELETE".to_string(),
+                    egui::Key::Home => "HOME".to_string(),
+                    egui::Key::End => "END".to_string(),
+                    egui::Key::PageUp => "PGUP".to_string(),
+                    egui::Key::PageDown => "PGDN".to_string(),
+                    egui::Key::ArrowLeft => "LEFT".to_string(),
+                    egui::Key::ArrowRight => "RIGHT".to_string(),
+                    egui::Key::ArrowUp => "UP".to_string(),
+                    egui::Key::ArrowDown => "DOWN".to_string(),
                     egui::Key::Num0 => "0".to_string(),
                     egui::Key::Num1 => "1".to_string(),
                     egui::Key::Num2 => "2".to_string(),
@@ -693,37 +722,71 @@ impl eframe::App for TyperRacerApp {
                     egui::Key::Num7 => "7".to_string(),
                     egui::Key::Num8 => "8".to_string(),
                     egui::Key::Num9 => "9".to_string(),
-                    egui::Key::A => "a".to_string(),
-                    egui::Key::B => "b".to_string(),
-                    egui::Key::C => "c".to_string(),
-                    egui::Key::D => "d".to_string(),
-                    egui::Key::E => "e".to_string(),
-                    egui::Key::F => "f".to_string(),
-                    egui::Key::G => "g".to_string(),
-                    egui::Key::H => "h".to_string(),
-                    egui::Key::I => "i".to_string(),
-                    egui::Key::J => "j".to_string(),
-                    egui::Key::K => "k".to_string(),
-                    egui::Key::L => "l".to_string(),
-                    egui::Key::M => "m".to_string(),
-                    egui::Key::N => "n".to_string(),
-                    egui::Key::O => "o".to_string(),
-                    egui::Key::P => "p".to_string(),
-                    egui::Key::Q => "q".to_string(),
-                    egui::Key::R => "r".to_string(),
-                    egui::Key::S => "s".to_string(),
-                    egui::Key::T => "t".to_string(),
-                    egui::Key::U => "u".to_string(),
-                    egui::Key::V => "v".to_string(),
-                    egui::Key::W => "w".to_string(),
-                    egui::Key::X => "x".to_string(),
-                    egui::Key::Y => "y".to_string(),
-                    egui::Key::Z => "z".to_string(),
+                    egui::Key::A => "A".to_string(),
+                    egui::Key::B => "B".to_string(),
+                    egui::Key::C => "C".to_string(),
+                    egui::Key::D => "D".to_string(),
+                    egui::Key::E => "E".to_string(),
+                    egui::Key::F => "F".to_string(),
+                    egui::Key::G => "G".to_string(),
+                    egui::Key::H => "H".to_string(),
+                    egui::Key::I => "I".to_string(),
+                    egui::Key::J => "J".to_string(),
+                    egui::Key::K => "K".to_string(),
+                    egui::Key::L => "L".to_string(),
+                    egui::Key::M => "M".to_string(),
+                    egui::Key::N => "N".to_string(),
+                    egui::Key::O => "O".to_string(),
+                    egui::Key::P => "P".to_string(),
+                    egui::Key::Q => "Q".to_string(),
+                    egui::Key::R => "R".to_string(),
+                    egui::Key::S => "S".to_string(),
+                    egui::Key::T => "T".to_string(),
+                    egui::Key::U => "U".to_string(),
+                    egui::Key::V => "V".to_string(),
+                    egui::Key::W => "W".to_string(),
+                    egui::Key::X => "X".to_string(),
+                    egui::Key::Y => "Y".to_string(),
+                    egui::Key::Z => "Z".to_string(),
                     _ => return, // Skip other keys
                 };
                 // Save the last pressed key (case-sensitive)
                 if pressed {
-                    self.last_pressed_key = Some(key_str.clone());
+                    self.last_pressed_key = Some(key_str.clone().to_uppercase());
+                    // Handle cursor movement and text editing
+                    match key_str.as_str() {
+                        "Left" => {
+                            if self.game.cursor_pos > 0 {
+                                self.game.cursor_pos -= 1;
+                            }
+                        },
+                        "Right" => {
+                            if self.game.cursor_pos < self.game.input_buffer.len() {
+                                self.game.cursor_pos += 1;
+                            }
+                        },
+                        "Backspace" => {
+                            if self.game.cursor_pos > 0 {
+                                self.game.input_buffer.remove(self.game.cursor_pos - 1);
+                                self.game.cursor_pos -= 1;
+                            }
+                        },
+                        _ => {
+                            // Only add single-char keys (letters, numbers, symbols)
+                            if key_str.len() == 1 && pressed {
+                                self.game.input_buffer.insert_str(self.game.cursor_pos, &key_str);
+                                self.game.cursor_pos += key_str.len();
+                            }
+                            if key_str == "Space" {
+                                self.game.input_buffer.insert(self.game.cursor_pos, ' ');
+                                self.game.cursor_pos += 1;
+                            }
+                            if key_str == "Enter" {
+                                self.game.input_buffer.insert(self.game.cursor_pos, '\n');
+                                self.game.cursor_pos += 1;
+                            }
+                        }
+                    }
                 }
                 // Log key press event for debugging
                 {
@@ -740,7 +803,7 @@ impl eframe::App for TyperRacerApp {
                     }
                 }
                 // Update key state (legacy, may be removed)
-                if let Some(state) = self.keyboard_state.get_mut(&key_str) {
+                if let Some(state) = self.keyboard_state.get_mut(&key_str.to_uppercase()) {
                     state.pressed = pressed;
                     if pressed {
                         state.last_press_time = Some(now);
@@ -983,8 +1046,8 @@ impl eframe::App for TyperRacerApp {
                         );
                     }
 
-                    // Draw vertical caret/indicator at current character
-                    let caret_idx = input_text.chars().count().min(char_count);
+                    // Draw vertical caret/indicator at cursor position
+                    let caret_idx = self.game.cursor_pos.min(char_count);
                     let caret_x = rect.left() + caret_idx as f32 * char_width;
                     painter.line_segment(
                         [
@@ -1080,6 +1143,7 @@ impl eframe::App for TyperRacerApp {
             if ui.button("Reset").clicked() {
                 self.game.status = GameStatus::NotStarted;
                 self.game.input_buffer.clear();
+                self.game.cursor_pos = 0;
                 self.game.errors = 0;
                 self.game.current_quote = 0;
                 self.game.replay.clear();
@@ -1251,23 +1315,25 @@ fn load_expanded_meditations() -> Vec<MeditationQuote> {
 
 // --- UI Helper Functions ---
 /// Draw a keyboard key with the given label, size, and pressed state
-fn draw_key(ui: &mut egui::Ui, label: &str, size_factor: f32, key_size: f32, is_pressed: bool) -> egui::Response {
+fn draw_key(ui: &mut egui::Ui, label: &str, size_factor: f32, key_size: f32, anim: f32) -> egui::Response {
     let key_width = key_size * size_factor;
     let key_height = key_size;
-    
-    // Choose colors based on key state
-    let (bg_color, text_color) = if is_pressed {
-        (egui::Color32::from_rgb(100, 180, 255), egui::Color32::BLACK)
+    // Animation: anim in [0,1], 1 means just pressed, 0 means idle
+    let bg_color = if anim > 0.0 {
+        let t = anim;
+        egui::Color32::from_rgb(
+            (60.0 + (100.0-60.0)*t) as u8,
+            (60.0 + (180.0-60.0)*t) as u8,
+            (70.0 + (255.0-70.0)*t) as u8,
+        )
     } else {
-        (egui::Color32::from_rgb(60, 60, 70), egui::Color32::WHITE)
+        egui::Color32::from_rgb(60, 60, 70)
     };
-    
-    // Draw the key
+    let text_color = if anim > 0.5 { egui::Color32::BLACK } else { egui::Color32::WHITE };
     let (rect, response) = ui.allocate_exact_size(
         egui::vec2(key_width, key_height),
         egui::Sense::click()
     );
-    
     ui.painter().rect_filled(rect, 4.0, bg_color);
     ui.painter().text(
         rect.center(),

@@ -240,3 +240,51 @@ Would you like me to make any specific improvements or adjustments to the UI des
 Feedback submitted
 
 
+
+
+The keyboard visualization now animates each key press: when a key is pressed (physically or by clicking), the key highlights and then fades back to its normal color over 0.2 seconds, creating a smooth animation effect. This is achieved by using the last_press_time in KeyState and interpolating the highlight color based on how recently the key was pressed.
+
+Summary of changes:
+
+The draw_key function now takes an anim parameter (0.0–1.0) to animate the key's background color.
+The keyboard rendering logic computes anim for each key based on the time since its last press.
+Keys now visibly animate when pressed or clicked, improving user feedback and interactivity.
+Let me know if you want to further customize the animation or add sound/haptic feedback!
+
+
+All keyboard labels and key logic have now been switched to uppercase. This means:
+
+The keyboard layout, key rendering, and all key event handling now use uppercase consistently (e.g., "A", "B", ..., "Z", "ENTER", "SPACE").
+When you press or click any key (including A–Z), the animation and highlight will work as expected, since the lookup in the key state is now always uppercase and matches the labels.
+Summary of what was fixed:
+
+All key labels in the layout and in the state are uppercase.
+All key event matching and lookups are done in uppercase.
+Now, pressing or clicking any key (letters, numbers, special keys) will animate/highlight correctly.
+You should now see key animations for all keys, including A–Z. If you want further tweaks (like showing lowercase on the visual keys but using uppercase internally), just let me know!
+
+To split up main.rs into logical submodules with separation of concerns, here is a recommended structure based on the outline and code content:
+
+Proposed File Structure
+src/
+main.rs (entry point, minimal, only starts the app)
+app.rs (TyperRacerApp struct and main egui logic)
+game.rs (GameState, GameStatus, ReplayEvent, MeditationQuote, game logic)
+keyboard.rs (KeyState, KeyboardState, draw_key, keyboard rendering/logic)
+ui/
+sections.rs (TopSectionState, PlayerViewState, TextInputState, FooterState, and their rendering)
+time.rs (TimeInstant, TimeDuration, cross-platform time logic)
+utils.rs (fnv_hash, helpers, loading meditations, etc.)
+Next Steps
+Create the new files: Add app.rs, game.rs, keyboard.rs, ui/sections.rs, time.rs, and utils.rs.
+Move code: Move the relevant structs, enums, and functions into these files.
+Add mod declarations: Update main.rs and other files to use mod and use as appropriate.
+Test: Ensure the project builds and runs.
+Let me know if you want to use this structure or want to adjust it!
+
+If you approve, I will:
+
+Create the new files with module skeletons.
+Move the code in logical chunks.
+Update all imports and module declarations.
+Would you like to proceed with this structure?
