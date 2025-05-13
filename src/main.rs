@@ -499,7 +499,24 @@ impl TyperRacerApp {
                     } else {
                         false
                     };
-                    draw_key(ui, key, size_factor, key_size, is_pressed);
+                    let response = draw_key(ui, key, size_factor, key_size, is_pressed);
+                    // If the key is clicked, treat it as a key press
+                    if response.clicked() {
+                        // Animate/highlight as pressed
+                        self.last_pressed_key = Some(key.to_string());
+                        // Handle special keys
+                        match *key {
+                            "Backspace" => { self.game.input_buffer.pop(); },
+                            "Space" => { self.game.input_buffer.push(' '); },
+                            "Enter" => { self.game.input_buffer.push('\n'); },
+                            _ => {
+                                // Only add single-char keys (letters, numbers, symbols)
+                                if key.len() == 1 {
+                                    self.game.input_buffer.push_str(key);
+                                }
+                            }
+                        }
+                    }
                 }
             });
         };
@@ -1248,7 +1265,7 @@ fn draw_key(ui: &mut egui::Ui, label: &str, size_factor: f32, key_size: f32, is_
     // Draw the key
     let (rect, response) = ui.allocate_exact_size(
         egui::vec2(key_width, key_height),
-        egui::Sense::hover()
+        egui::Sense::click()
     );
     
     ui.painter().rect_filled(rect, 4.0, bg_color);
@@ -1259,7 +1276,6 @@ fn draw_key(ui: &mut egui::Ui, label: &str, size_factor: f32, key_size: f32, is_
         egui::FontId::proportional(14.0),
         text_color
     );
-    
     response
 }
 
