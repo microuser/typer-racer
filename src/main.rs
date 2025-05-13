@@ -129,7 +129,7 @@ fn main() {
     eframe::run_native(
         "Typer Racer",
         eframe::NativeOptions::default(),
-        Box::new(|_cc| Box::new(TyperRacerApp::default())),
+        Box::new(|_cc| Ok(Box::new(TyperRacerApp::default()))),
     )
     .expect("Failed to start native app");
 }
