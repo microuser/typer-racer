@@ -18,15 +18,6 @@ mod impl_typer_racer_app;
 mod typer_racer_app;
 pub use typer_racer_app::TyperRacerApp;
 
-
-
-        Self {
-            quotes,
-            ..Default::default()
-    
-
-}
-
 // --- Time Handling for Cross-Platform ---
 #[cfg(not(target_arch = "wasm32"))]
 pub type TimeInstant = std::time::Instant;
@@ -41,12 +32,12 @@ impl TimeInstant {
         let window = web_sys::window().expect("no global window exists");
         let performance = window.performance().expect("performance object not available");
         Self(performance.now())
+    }
 
-    
     pub fn elapsed(&self) -> TimeDuration {
         let now = Self::now();
         TimeDuration(((now.0 - self.0) / 1000.0) as f32) // Convert ms to seconds
-
+    }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -56,7 +47,7 @@ pub struct TimeDuration(f32); // Duration in seconds
 impl TimeDuration {
     pub fn as_secs_f32(&self) -> f32 {
         self.0
-
+    }
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -66,19 +57,16 @@ pub struct TimeDuration(f32); // Duration in seconds
 impl TimeDuration {
     pub fn as_secs_f32(&self) -> f32 {
         self.0
-
+    }
 }
-
 
 // --- Main App ---
-
 
 mod app_init;
 
 // --- WASM Timer Global ---
 #[no_mangle]
 pub static mut TYPER_RACER_ELAPSED: f32 = 0.0;
-
 
 // For wasm32 (web) builds, use the following entrypoint
 #[cfg(target_arch = "wasm32")]
@@ -91,7 +79,7 @@ pub fn main() {
     // eframe 0.27 uses a different approach for web initialization
     // The main entry point is handled by wasm-bindgen
     let web_options = eframe::WebOptions::default();
-    
+
     // Use wasm_bindgen_futures to handle the async nature of web initialization
     wasm_bindgen_futures::spawn_local(async {
         eframe::WebRunner::new()
@@ -102,9 +90,8 @@ pub fn main() {
             )
             .await
             .expect("Failed to start eframe");
-);
+    });
 }
-
 
 // --- WASM Timer Export ---
 #[cfg(target_arch = "wasm32")]
@@ -119,12 +106,12 @@ pub fn get_elapsed_time() -> f32 {
     // We'll use a static mut with unsafe for demonstration (not thread safe, but ok for wasm single-thread)
     extern "C" {
         static mut TYPER_RACER_ELAPSED: f32;
+    }
 
     unsafe { TYPER_RACER_ELAPSED }
 }
 
 // In the App update, set TYPER_RACER_ELAPSED = self.game.elapsed;
-
 
 // Next steps:
 // - Expand input logic to update game state and stats
@@ -139,5 +126,6 @@ fn main() {
         "Typer Racer",
         eframe::NativeOptions::default(),
         Box::new(|_cc| Box::new(TyperRacerApp::default())),
-    ).expect("Failed to start native app");
+    )
+    .expect("Failed to start native app");
 }

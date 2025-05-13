@@ -1,11 +1,14 @@
 // Keyboard event abstraction and handler trait
+use eframe::egui;
+use eframe::egui::Key;
+
 #[derive(Debug, Clone)]
 pub enum KeyboardEvent {
     KeyPress { key: String },
     KeyRelease { key: String },
 }
 
-pub fn egui_key_to_string(key: &egui::Key) -> Option<String> {
+pub fn egui_key_to_string(key: &Key) -> Option<String> {
 
     Some(match key {
         Key::Space => "SPACE",

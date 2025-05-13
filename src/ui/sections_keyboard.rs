@@ -31,6 +31,9 @@ impl KeyboardEventHandler for KeyboardDisplayState {
 // KeyboardEventHandler implementation for TextInputState
 #[derive(Default, Debug, Clone)]
 pub struct TextInputState {
+    pub current_quote: String,
+    pub current_position: usize,
+    pub typed_text: String,
     // Add your state fields here
 }
 
