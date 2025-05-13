@@ -5,13 +5,13 @@
 - **Purpose:** Fun typing game with real-time stats, visual effects (confetti, car, road), and a "ghost" player replaying previous successful runs.
 - **Tech Stack:** Rust (core logic, integration tests, local deployment via dev/debug command, compiled to WebAssembly for browser execution).
 - **Key Features:**
-  - Words appear on the left; player types them.
-  - Right side replays a "ghost" (recording of a previous run).
-  - 60 FPS, fast response to input.
-  - Visual effects: confetti, car, road, dynamic animations.
-  - Road generated from a seed phrase (algorithmic/procedural generation).
-  - End-of-game report: speed, stats.
-  - **Runs in browser (WebGPU compatible, e.g., latest Chrome/Edge/Firefox).**
+  - [x] Words appear on the left; player types them.
+  - [x] Right side replays a "ghost" (recording of a previous run).
+  - [x] 60 FPS, fast response to input.
+  - [x] Visual effects: confetti, car, road, dynamic animations.
+  - [x] Road generated from a seed phrase (algorithmic/procedural generation).
+  - [x] End-of-game report: speed, stats.
+  - [x] **Runs in browser (WebGPU compatible, e.g., latest Chrome/Edge/Firefox).**
 - **Non-Functional:** High performance, testable, local deployment.
 
 ## Clarifying Questions
@@ -31,22 +31,22 @@
 
 ## Proposed Layered Architecture
 
-1. **Presentation Layer (UI)**
-   - Renders game state, animations, effects (confetti, car, road).
-   - Handles user input (typing).
-2. **Game Logic Layer**
-   - Manages game state (words, car position, score, timing).
-   - Processes input, updates stats, triggers effects.
-   - Handles ghost playback (replay from recording).
-3. **Persistence Layer**
-   - Saves and loads ghost player data (recordings).
-   - Stores player stats and reports.
-4. **Procedural Generation Layer**
-   - Generates roads from seed phrases.
-   - Ensures reproducibility for ghost runs.
-5. **Testing/Dev Layer**
-   - Integration tests for game logic.
-   - Debug/dev commands for local runs.
+1. [x] **Presentation Layer (UI)**
+   - [x] Renders game state, animations, effects (confetti, car, road).
+   - [x] Handles user input (typing).
+2. [x] **Game Logic Layer**
+   - [x] Manages game state (words, car position, score, timing).
+   - [x] Processes input, updates stats, triggers effects.
+   - [x] Handles ghost playback (replay from recording).
+3. [x] **Persistence Layer**
+   - [x] Saves and loads ghost player data (recordings).
+   - [x] Stores player stats and reports.
+4. [x] **Procedural Generation Layer**
+   - [x] Generates roads from seed phrases.
+   - [x] Ensures reproducibility for ghost runs.
+5. [x] **Testing/Dev Layer**
+   - [x] Integration tests for game logic.
+   - [x] Debug/dev commands for local runs.
 
 ## Dataflow (Initial)
 

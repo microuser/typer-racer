@@ -24,6 +24,14 @@ web:
 
 # Alias: up target (same as web)
 up:
+	@echo "Checking if port 8080 (trunk serve) is open..."
+	@if lsof -i :8080 | grep LISTEN; then \
+	  echo "Port 8080 is open. Stopping process..."; \
+	  kill -9 $$(lsof -ti:8080); \
+	  echo "Process on port 8080 stopped."; \
+	else \
+	  echo "Port 8080 is not open."; \
+	fi
 	(trunk serve & echo $$! > .webserver.pid)
 # Take down the web server
 
@@ -36,15 +44,7 @@ down:
 	else \
 	  echo "Port 8080 is not open."; \
 	fi
-	@if [ -f .webserver.pid ]; then \
-	  PID=$$(cat .webserver.pid); \
-	  if kill -0 $$PID 2>/dev/null; then \
-	    echo "Killing web server with PID $$PID..."; \
-	    kill -9 $$PID; \
-	    echo "Web server process killed."; \
-	  fi; \
-	  rm -f .webserver.pid; \
-	fi
+	
 
 # Clean build artifacts
 clean:

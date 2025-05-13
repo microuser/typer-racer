@@ -1,43 +1,90 @@
 #!/bin/bash
-
-# pbcat - A script to grep for content in Markdown files and copy it to clipboard
-# Usage: pbcat pattern [directory]
-#        If directory is not provided, current directory is used
-
+# pbcat - A script to extract content from files and copy it to clipboard for AI chat sessions
+# Usage: pbcat [file_mask] [grep_pattern] [lines_after]
 # Function to show usage
 show_usage() {
-    echo "Usage: pbcat pattern [directory]"
-    echo "Searches for pattern in *.md files using case-insensitive grep and copies the results to clipboard"
-    echo "If directory is not provided, current directory is used"
+    echo "pbcat - Extract content from files to share with AI assistants"
+    echo ""
+    echo "Usage: pbcat [file_mask] [grep_pattern] [lines_after]"
+    echo ""
+    echo "Parameters:"
+    echo "  file_mask    - Pattern for files to search (default: *.md)"
+    echo "                 For multiple types, separate with commas: *.md,*.rs,*.txt"
+    echo "  grep_pattern - Text pattern to search for (default: .*)"
+    echo "                 Examples: \"function main\", \"TODO\", \"^## \""
+    echo "  lines_after  - Optional: Number of context lines to include after matches"
+    echo ""
+    echo "Examples:"
+    echo "  pbcat                         # Copy all content from markdown files"
+    echo "  pbcat *.rs,*.js               # Copy all content from both Rust and JavaScript files"
+    echo "  pbcat \"src/*.md,docs/*.md\"    # Copy content from markdown files in src and docs directories"
+    echo "  pbcat \"*.rs,*.ts\" \"function\" 3 # Search for functions in Rust and TypeScript with 3 lines of context"
+    echo ""
+    echo "The matched content is copied to clipboard, ready to paste into AI chat sessions."
 }
-
-# Check if at least one argument is provided
-if [ $# -lt 1 ]; then
-    show_usage
-    exit 1
+{
+# Set defaults
+FILE_MASK="*.md"
+GREP_PATTERN=".*"
+LINES_AFTER=""
+# Override defaults if arguments are provided
+if [ $# -ge 1 ]; then
+    FILE_MASK="$1"
 fi
-PATH="$1"
-PATTERN="$2"
-DIRECTORY="."
-
-# If a second argument is provided, use it as the directory
-if [ $# -gt 1 ]; then
-    DIRECTORY="$2"
+if [ $# -ge 2 ]; then
+    GREP_PATTERN="$2"
 fi
-
-# Use find to locate all *.md files, then pipe to xargs with null terminator
-# to handle filenames with spaces, then use grep with case-insensitive search
-find "$DIRECTORY" -type f -iname "$PATH" -print0 | xargs -0 grep -i "$PATTERN" | pbcopy
-
+# Check if third parameter exists and is numeric
+if [ $# -ge 3 ] && [[ "$3" =~ ^[0-9]+$ ]]; then
+    LINES_AFTER="-A $3"
+    echo "Including $3 lines after each match"
+fi
+# Show what's happening
+echo "Searching for: \"$GREP_PATTERN\" in files matching: $FILE_MASK"
+# Build the find command for multiple file types
+FIND_COMMAND="find . -type f"
+IFS=',' read -ra FILE_PATTERNS <<< "$FILE_MASK"
+FIRST=true
+for PATTERN in "${FILE_PATTERNS[@]}"; do
+    # Clean up the pattern (remove any whitespace)
+    PATTERN=$(echo "$PATTERN" | xargs)
+    
+    if [ "$FIRST" = true ]; then
+        FIND_COMMAND="$FIND_COMMAND -name \"$PATTERN\""
+        FIRST=false
+    else
+        FIND_COMMAND="$FIND_COMMAND -o -name \"$PATTERN\""
+    fi
+done
+# Execute the find command to count files
+echo "Finding files..."
+FILES=$(eval "$FIND_COMMAND" | wc -l)
+echo "Found $FILES matching files"
+# Execute the search and copy to clipboard, also capture to CONTENT
+if [ -n "$LINES_AFTER" ]; then
+    CONTENT=$(eval "$FIND_COMMAND" -print0 | xargs -0 grep -n -i -A "$3" "$GREP_PATTERN" 2>/dev/null)
+else
+    CONTENT=$(eval "$FIND_COMMAND" -print0 | xargs -0 grep -n -i "$GREP_PATTERN" 2>/dev/null)
+fi
+echo "$CONTENT" | pbcopy
 # Check if anything was found and copied
-if [ -z "$(pbpaste)" ]; then
-    echo "No matches found for pattern: $PATTERN"
+if [ -z "$CONTENT" ]; then
+    echo "No matches found for pattern: \"$GREP_PATTERN\" in files matching: $FILE_MASK"
     exit 0
 fi
-
+# Count lines in results
+RESULTS=$(echo "$CONTENT" | wc -l)
 # Provide feedback that the operation was completed
-echo "Matched content copied to clipboard"
-
-# Also display what was copied to clipboard
-echo "Clipboard content:"
-pbpaste
+{
+    echo "Found $RESULTS line(s) matching your search"
+    echo "Matched content copied to clipboard"
+    # Also display what was copied to clipboard
+    echo "Clipboard content preview (first 5 lines):"
+    echo "$CONTENT" | head -n 5
+    # If there are more than 5 lines, indicate there's more
+    if [ "$RESULTS" -gt 5 ]; then
+        echo "... ($(($RESULTS - 5)) more lines not shown)"
+        echo "Full content copied to clipboard - ready to paste into your AI chat"
+    fi
+}
+}
