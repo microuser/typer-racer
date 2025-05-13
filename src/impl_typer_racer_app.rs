@@ -8,13 +8,14 @@ impl eframe::App for TyperRacerApp {
         self.update_timer(ctx);
 
         use crate::keyboard::simulator::KeyboardSimulator;
-        use std::time::{SystemTime, UNIX_EPOCH};
+        // use std::time::{SystemTime, UNIX_EPOCH}; // Removed for WASM compatibility
+        use crate::time::TimeInstant;
         // ... (other code remains the same)
 
         // Process input events
 
         // --- Keyboard Replay Simulation ---
-        let now_ms = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0);
+        let now_ms = (TimeInstant::now().elapsed().as_secs_f32() * 1000.0) as u64;
         if let Some(event) = self.keyboard_simulator.tick(now_ms) {
             // For now, send replayed event to player1_view
             let _ = self.player1_view.handle_keyboard_event(&event);
