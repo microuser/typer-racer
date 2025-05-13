@@ -24,7 +24,7 @@ pub enum GameStatus {
 
 impl Default for GameStatus {
     fn default() -> Self {
-        GameStatus::NotStarted
+        GameStatus::Running
     }
 }
 
