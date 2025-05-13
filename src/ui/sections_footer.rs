@@ -1,6 +1,8 @@
 // --- Footer Section UI Encapsulation ---
 use eframe::egui;
 
+use crate::keyboard::event::{KeyboardEvent, KeyboardEventHandler};
+
 #[derive(Default, Debug, Clone)]
 pub struct FooterSectionState {
     pub wpm_history: Vec<f32>,

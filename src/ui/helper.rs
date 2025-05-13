@@ -1,17 +1,3 @@
-// --- Keyboard Visualization and Logic ---
-#[derive(Default, Debug, Clone)]
-pub struct KeyState {
-    pub pressed: bool,
-    pub last_press_time: Option<crate::time::TimeInstant>,
-}
-
-#[derive(Default, Debug, Clone)]
-pub struct KeyboardState {
-    pub key_map: std::collections::HashMap<String, KeyState>,
-    pub most_used_keys: Vec<String>,
-    pub least_used_keys: Vec<String>,
-}
-
 use eframe::egui;
 
 /// Draw a keyboard key with the given label, size, and pressed state
@@ -43,4 +29,14 @@ pub fn draw_key(ui: &mut egui::Ui, label: &str, size_factor: f32, key_size: f32,
         text_color
     );
     response
+}
+
+/// FNV-1a hash for deterministic seed-to-number
+pub fn fnv_hash(s: &str) -> u64 {
+    let mut hash: u64 = 0xcbf29ce484222325;
+    for b in s.as_bytes() {
+        hash ^= *b as u64;
+        hash = hash.wrapping_mul(0x100000001b3);
+    }
+    hash
 }

@@ -9,6 +9,15 @@ pub struct TopSectionState {
     pub race_progress_percent: f32,
 }
 
+use crate::keyboard::event::KeyboardEventHandler;
+
+impl KeyboardEventHandler for TopSectionState {
+    fn handle_keyboard_event(&mut self, _event: &crate::keyboard::event::KeyboardEvent) -> bool {
+        // Top section does not handle keyboard events by default
+        false
+    }
+}
+
 impl TopSectionState {
     pub fn render(&self, ui: &mut egui::Ui) {
         ui.horizontal(|ui| {

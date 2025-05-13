@@ -385,3 +385,105 @@ Let me know if you want further modularization or new features!
 Would you like me to run the build for you now to confirm everything is working? Or do you want to proceed with further UI/feature enhancements?
 
 
+Here’s a summary of the current state and a plan for refactoring keyboard input propagation to a tree-like model:
+
+Current Keyboard Input Flow
+Keyboard input is handled in main.rs inside the eframe::App implementation for TyperRacerApp, specifically in the update method.
+Input events are polled from ctx.input(|i| i.events.last().cloned()).
+When an egui::Event::Key is detected, the key is mapped to a string, and then direct state mutations are performed (e.g., moving the cursor, updating the buffer, toggling ghost mode, etc.).
+The logic for handling keys is monolithic and centralized, making it hard to extend or delegate to different UI sections.
+UI Sections
+The app is structured with sections: top_section, player1_view, player2_view, text_input, keyboard_display, footer, etc.
+Each section has its own state struct and render method (e.g., TopSectionState, FooterSectionState, etc.).
+Sections are not currently set up to receive or handle input events independently.
+Goal
+Refactor so that keyboard input events are propagated through a tree of UI sections.
+Each section can have its own keyboard handler (e.g., section_keyboard, sections_footer), and can update itself or its subtree in response to events.
+This enables modular, extensible, and testable input handling.
+Refactor Plan
+Define a KeyboardEventHandler Trait
+Each section that wants to handle keyboard events will implement a trait, e.g., KeyboardEventHandler.
+Implement the Trait for Each Section
+Implement handle_keyboard_event(&mut self, event: &KeyboardEvent) for relevant sections.
+Propagate Events in a Tree Structure
+In TyperRacerApp, maintain a tree or at least a hierarchy of sections.
+When an input event is received, propagate it down the tree (e.g., from root to sections, and from sections to children).
+Update the Main Input Handling
+In main.rs, refactor the update method to delegate keyboard events to the root handler, which will propagate as needed.
+Next Steps
+Define a KeyboardEvent struct or enum that is independent of egui.
+Define a KeyboardEventHandler trait.
+Implement this trait for at least two sections (e.g., keyboard and footer).
+Refactor the main input loop to use this system.
+I will now:
+
+Draft the trait and event struct in a shared module.
+Show how to implement and wire up this propagation for two sections (keyboard and footer).
+Refactor the main input event handling to use this system.
+Here are the recommended next steps to further develop your tree-like, section-based keyboard event propagation system:
+
+1. Implement Handlers for More Sections
+Implement KeyboardEventHandler for other sections such as:
+TopSectionState (top bar)
+TextInputState (main typing area)
+PlayerViewState (left/right player panels)
+This allows each section to react to relevant keys (e.g., T for top, text input for alphanumeric keys, etc.).
+2. Build a True Section Tree
+Refactor the propagation logic in TyperRacerApp::update to follow your actual UI hierarchy.
+For example, if you have a root "screen" node, propagate first to it, then to its children (sections), and so on.
+You can use a helper method, e.g., propagate_keyboard_event(&mut self, event: &KeyboardEvent), to recursively walk the tree.
+3. Remove Legacy Input Logic
+Once all relevant sections implement the handler trait, remove or minimize the fallback/legacy input logic in TyperRacerApp::update.
+This ensures all keyboard input is routed through your new, modular system.
+4. Add Tests & Logging
+Add unit tests for each section’s handler to ensure correct behavior.
+Optionally, add logging or debug output in each handler to trace event propagation and handling.
+5. Documentation & Comments
+Document the propagation pattern in your codebase (e.g., in a Plan2.md or code comments), so future contributors understand the new architecture.
+6. (Optional) Dynamic Section Registration
+For maximum flexibility, consider allowing sections to register themselves dynamically in a tree structure, so new UI components can be added without editing the main event loop.
+Would you like to proceed with implementing handlers for specific sections, or refactor the propagation tree structure next? If you have a preferred section or order, let me know!
+
+
+Here’s a plan to address your request for refactoring game saves/loads, simulating typing (keyboard replay), and adding a toggle to connect the keyboard to left or right player, with replay and monitoring features:
+
+Goals
+Refactor Game Save/Load
+Make sure game state and keyboard events (with timestamps) are saved to and loaded from JSON.
+Simulate Typing with Replay
+Add a system to replay saved keyboard events, simulating typing with correct delays.
+Keyboard Simulator & Toggle
+Add a toggle switch in the UI to connect the keyboard to either the left or right player.
+Show which keys are being monitored or played by the simulator.
+Implementation Steps
+1. Extend ReplayEvent & GameState
+Ensure ReplayEvent includes timestamps and key info for replay.
+Add a field to GameState to track the replay mode and which player is controlled by the simulator.
+2. KeyboardSimulator Struct
+Create a KeyboardSimulator struct to:
+Load a sequence of keyboard events with timestamps.
+Step through events, injecting them into the selected player’s input buffer at the right time.
+3. UI Toggle
+Add a toggle (e.g., in the keyboard section) to select which player (left or right) the keyboard/simulator controls.
+4. Save/Load Logic
+Refactor save/load to include keyboard events and replay data in JSON.
+Add UI buttons for save/load, and for starting/stopping replay.
+5. Visualization
+In the keyboard section, display:
+The keys currently being “played” by the simulator.
+The monitored keys for the selected player.
+Next: Research & File Planning
+I’ll now:
+
+Check the current ReplayEvent and save/load logic.
+Review how left/right player input is handled.
+Check where the keyboard section UI is rendered.
+
+
+The keyboard initialization logic is now fully centralized:
+
+I created a helper function init_keyboard_state() in app_init.rs.
+Both main.rs and app_init.rs now use this function, eliminating duplication and making future maintenance easier.
+You can now add or change keyboard keys in one place, and all initialization will remain consistent.
+
+If you’d like, I can help you further centralize or modularize other repeated initialization logic (such as for UI sections or display state), or move on to the next feature or refactor. Let me know your preference!

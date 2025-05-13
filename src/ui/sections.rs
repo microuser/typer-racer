@@ -16,9 +16,6 @@ pub struct PlayerViewState {
 }
 
 #[derive(Default, Debug, Clone)]
-
-
-#[derive(Default, Debug, Clone)]
 pub struct FooterState {
     pub wpm_history: Vec<f32>,
     pub accuracy: f32,

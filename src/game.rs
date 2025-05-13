@@ -1,5 +1,6 @@
 // --- Game State and Data Models ---
 use serde::{Deserialize, Serialize};
+use std::time::Instant;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MeditationQuote {
@@ -36,7 +37,7 @@ pub struct GameState {
     pub cursor_pos: usize, // New: cursor position in input_buffer
     pub status: GameStatus,
     pub errors: usize,
-    pub start_time: Option<crate::time::TimeInstant>,
+    pub start_time: Option<std::time::Instant>,
     pub elapsed: f32,
     pub replay: Vec<ReplayEvent>,
     pub ghost_mode: bool,
